@@ -1,0 +1,105 @@
+/* ── Google Fonts ─────────────────────────────────────────────────────────── */
+/* Plus Jakarta Sans: skill's top pick for friendly SaaS/productivity tools   */
+/* JetBrains Mono: timers, badges, status labels                              */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Base ─────────────────────────────────────────────────────────────────── */
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    background-color: #050705;
+    color: #f4f4f5; /* zinc-100 */
+    font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    line-height: 1.6;
+    font-size: 16px; /* WCAG minimum for body text; aids ADHD readability */
+  }
+
+  /* ADHD-friendly: all buttons are obviously clickable */
+  button {
+    cursor: pointer;
+  }
+}
+
+/* ── Reduced motion ───────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ── Utilities ────────────────────────────────────────────────────────────── */
+@layer utilities {
+  /* Glass morphism card — slightly more visible border for ADHD clarity */
+  .glass {
+    @apply bg-white/[0.03] backdrop-blur-xl border border-white/[0.12] rounded-2xl;
+  }
+
+  /* Slightly more elevated glass (e.g. sidebar) */
+  .glass-dark {
+    @apply bg-black/40 backdrop-blur-xl border border-white/[0.12] rounded-2xl;
+  }
+
+  /* Atmospheric radial gradient — warmer, less void-like for ADHD focus */
+  .atmosphere-bg {
+    background:
+      radial-gradient(circle at 80% 20%, rgba(152, 232, 158, 0.08) 0%, transparent 55%),
+      radial-gradient(circle at 20% 80%, rgba(112, 128, 232, 0.05) 0%, transparent 55%),
+      radial-gradient(circle at 50% 50%, rgba(232, 152, 232, 0.02) 0%, transparent 60%),
+      #050705;
+  }
+
+  /* Subtle dot-grid overlay for content panels */
+  .neural-grid {
+    background-image: radial-gradient(circle, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+
+  /* Pill button base */
+  .btn-pill {
+    @apply px-6 py-2 rounded-full border border-white/10 hover:bg-white/5 transition-colors font-medium text-sm;
+  }
+
+  /* Mono status label */
+  .status-label {
+    @apply font-mono text-[10px] uppercase tracking-widest text-zinc-400;
+  }
+
+  /* Primary CTA: mint glow on hover — dopamine-triggering for ADHD */
+  .btn-mint {
+    @apply rounded-full font-bold transition-all active:scale-[0.98];
+    background-color: #98E89E;
+    color: #050705;
+  }
+  .btn-mint:hover:not(:disabled) {
+    box-shadow: 0 0 20px rgba(152, 232, 158, 0.35), 0 4px 12px rgba(152, 232, 158, 0.15);
+    background-color: #a8ecae;
+  }
+  .btn-mint:disabled {
+    opacity: 0.4;
+  }
+}
+
+/* ── Scrollbar ────────────────────────────────────────────────────────────── */
+::-webkit-scrollbar       { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.03); }
+::-webkit-scrollbar-thumb { background: rgba(152, 232, 158, 0.3); border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(152, 232, 158, 0.55); }
+
+/* ── Focus ring — WCAG AA, visible for keyboard & ADHD users ─────────────── */
+:focus-visible {
+  outline: 2px solid rgba(152, 232, 158, 0.7);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+* { outline-color: #98E89E; }
