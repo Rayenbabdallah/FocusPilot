@@ -1,0 +1,135 @@
+from __future__ import annotations
+
+import os
+from contextlib import asynccontextmanager
+from datetime import datetime
+from typing import Any, Dict
+
+from fastapi import Depends, FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+
+from app.database import create_all_tables, get_db
+from app.models.student import Student, StudentCreate, StudentRead
+from app.routers import materials, sessions, quiz, profile
+
+
+import logging
+logger = logging.getLogger("focuspilot")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await create_all_tables()
+    from app.config import get_settings
+    settings = get_settings()
+    os.makedirs(settings.upload_dir, exist_ok=True)
+
+    # Test Bedrock connectivity at startup — warn but never block
+    try:
+        from app.services.bedrock import BedrockService
+        bedrock = BedrockService()
+        connected = bedrock.test_bedrock_connection()
+        if connected:
+            logger.info("✓ Amazon Bedrock connection verified")
+        else:
+            logger.warning(
+                "⚠ Amazon Bedrock unreachable — AI features will return fallback responses. "
+                "Check AWS credentials and model access in us-east-1."
+            )
+    except Exception as e:
+        logger.warning(f"⚠ Bedrock startup check failed: {e}")
+
+    yield
+
+
+app = FastAPI(
+    title="FocusPilot API",
+    description="ADHD-focused study companion powered by Amazon Bedrock",
+    version="0.1.0",
+    lifespan=lifespan,
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(materials.router)
+app.include_router(sessions.router)
+app.include_router(quiz.router)
+app.include_router(profile.router)
+
+
+# ─── Health ────────────────────────────────────────────────────────────────────
+
+@app.get("/api/health")
+async def health_check() -> Dict[str, Any]:
+    """Ping the API and verify Bedrock connectivity."""
+    from app.services.bedrock import BedrockService
+    bedrock = BedrockService()
+    connected = bedrock.test_bedrock_connection()
+    return {
+        "status": "ok",
+        "bedrock_connected": connected,
+        "timestamp": datetime.utcnow().isoformat(),
+    }
+
+
+# ─── Students ─────────────────────────────────────────────────────────────────
+
+DEFAULT_STUDENT_ID = "00000000-0000-0000-0000-000000000001"
+
+
+@app.post("/api/students", response_model=StudentRead, tags=["students"])
+async def create_student(
+    payload: StudentCreate,
+    db: AsyncSession = Depends(get_db),
+) -> StudentRead:
+    """Create a new student. If email already exists, return existing record."""
+    result = await db.execute(select(Student).where(Student.email == payload.email))
+    existing = result.scalar_one_or_none()
+    if existing:
+        return StudentRead.model_validate(existing)
+
+    student = Student(
+        name=payload.name,
+        email=payload.email,
+        created_at=datetime.utcnow(),
+    )
+    db.add(student)
+    await db.commit()
+    await db.refresh(student)
+    return StudentRead.model_validate(student)
+
+
+@app.get("/api/students/{student_id}", response_model=StudentRead, tags=["students"])
+async def get_student(
+    student_id: str,
+    db: AsyncSession = Depends(get_db),
+) -> StudentRead:
+    """Return a student by ID. Auto-creates the default demo student on first access."""
+    if student_id == DEFAULT_STUDENT_ID:
+        result = await db.execute(select(Student).where(Student.id == student_id))
+        student = result.scalar_one_or_none()
+        if not student:
+            student = Student(
+                id=student_id,
+                name="Demo Student",
+                email="demo@focuspilot.app",
+                created_at=datetime.utcnow(),
+            )
+            db.add(student)
+            await db.commit()
+            await db.refresh(student)
+        return StudentRead.model_validate(student)
+
+    result = await db.execute(select(Student).where(Student.id == student_id))
+    student = result.scalar_one_or_none()
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+    return StudentRead.model_validate(student)
