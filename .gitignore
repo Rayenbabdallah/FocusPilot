@@ -1,6 +1,29 @@
-/.claude
-/backend
-/docs
-/FocusPilot_Proposal_AWS.pdf
-/frontend
-/ui-refrence
+.claude/
+
+# Python cache and virtual environments
+**/__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+backend/.venv/
+
+# Runtime and upload artifacts
+backend/uploads/
+
+# Frontend build and dependency artifacts
+frontend/node_modules/
+frontend/dist/
+ui-refrence/node_modules/
+ui-refrence/dist/
+
+# LaTeX build artifacts
+docs/*.aux
+docs/*.fdb_latexmk
+docs/*.fls
+
+# Local OS artifacts
+.DS_Store
+Thumbs.db
+
+# Large local proposal file
+FocusPilot_Proposal_AWS.pdf
