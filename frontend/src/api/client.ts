@@ -19,8 +19,9 @@ client.interceptors.response.use(
   (response) => response,
   (error: AxiosError) => {
     if (error.response) {
-      const data = error.response.data as { detail?: string }
-      const message = data?.detail ?? `Error ${error.response.status}`
+      const data = error.response.data as { detail?: string | Record<string, unknown> }
+      const raw = data?.detail
+      const message = typeof raw === 'string' ? raw : raw != null ? JSON.stringify(raw) : `Error ${error.response.status}`
       if (error.response.status >= 500) console.error('[FocusPilot] Server error:', message)
       return Promise.reject(new Error(message))
     }

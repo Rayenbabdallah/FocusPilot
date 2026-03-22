@@ -55,8 +55,13 @@ export default function App() {
         if (active.first_sprint_id) {
           sessionStorage.setItem('focuspilot_first_sprint_id', active.first_sprint_id)
         }
-      } catch {
-        // No active session or network error — silently continue
+      } catch (err) {
+        if (import.meta.env.DEV) {
+          const msg = err instanceof Error ? err.message : String(err)
+          if (!msg.includes('404') && !msg.includes('No active session')) {
+            console.warn('[FocusPilot] Could not restore session:', msg)
+          }
+        }
       }
     }
     restoreSession()

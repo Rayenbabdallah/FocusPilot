@@ -346,18 +346,31 @@ async def close_session(db, session_id: str) -> dict:
     await update_profile_after_session(db, session.student_id, session_id)
     await db.commit()
 
-    # Sessions streak (consecutive days with a completed session)
+    # Streak — count days with at least one completed sprint
     streak_result = await db.execute(
-        select(StudySession)
+        select(Sprint)
+        .where(
+            Sprint.session_id == session_id,
+            Sprint.status == "completed",
+            Sprint.ended_at.isnot(None),
+        )
+        .order_by(Sprint.ended_at.desc())
+        .limit(60)
+    )
+    # For a full session-close we use all completed sprints for this student
+    all_sprints_result = await db.execute(
+        select(Sprint)
+        .join(StudySession, Sprint.session_id == StudySession.id)
         .where(
             StudySession.student_id == session.student_id,
-            StudySession.status == "completed",
+            Sprint.status == "completed",
+            Sprint.ended_at.isnot(None),
         )
-        .order_by(StudySession.ended_at.desc())
-        .limit(30)
+        .order_by(Sprint.ended_at.desc())
+        .limit(60)
     )
-    completed = streak_result.scalars().all()
-    sessions_streak = _calculate_streak(completed)
+    all_sprints = all_sprints_result.scalars().all()
+    sessions_streak = _calculate_streak_from_sprints(all_sprints)
 
     return {
         "total_time_minutes": total_time,
@@ -376,6 +389,28 @@ def _calculate_streak(sessions: list) -> int:
     streak = 0
     current = date.today()
     for _ in range(30):
+        if current in day_set:
+            streak += 1
+            current -= timedelta(days=1)
+        else:
+            break
+    return streak
+
+
+def _calculate_streak_from_sprints(sprints: list) -> int:
+    """Count consecutive calendar days with at least one completed sprint."""
+    if not sprints:
+        return 0
+    day_set = {s.ended_at.date() for s in sprints if s.ended_at}
+    streak = 0
+    current = date.today()
+    if current not in day_set:
+        yesterday = current - timedelta(days=1)
+        if yesterday in day_set:
+            current = yesterday
+        else:
+            return 0
+    for _ in range(60):
         if current in day_set:
             streak += 1
             current -= timedelta(days=1)

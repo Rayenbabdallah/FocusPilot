@@ -369,6 +369,8 @@ export default function Profile() {
   const itemsDue = stats?.items_due_for_review ?? 0
   const topicsMastered = stats?.topics_mastered_count ?? 0
   const streak = stats?.sessions_streak ?? 0
+  const bestStreak = stats?.best_streak ?? streak
+  const lastStudyDaysAgo = stats?.last_study_days_ago ?? null
   const totalHours = (totalStudyMinutes / 60)
 
   // XP & level
@@ -494,7 +496,19 @@ export default function Profile() {
         <StatCard label="Total sessions" value={totalSessions} icon={BookOpen} color="#98E89E" />
         <StatCard label="Study hours" value={totalHours.toFixed(1)} sub="hours total" icon={Clock} color="#98E89E" />
         <StatCard label="Avg retention" value={`${Math.round(avgRetention)}%`} icon={Target} color={scoreColor(avgRetention)} />
-        <StatCard label="Study streak" value={streak} sub={streak === 1 ? 'day' : 'days'} icon={Zap} color="#E8E870" />
+        <StatCard
+          label="Study streak"
+          value={streak > 0 ? streak : bestStreak}
+          sub={
+            streak > 0
+              ? streak === 1 ? 'day' : 'days'
+              : bestStreak > 0
+                ? `best: ${bestStreak}d${lastStudyDaysAgo != null ? ` · ${lastStudyDaysAgo}d ago` : ''}`
+                : 'days'
+          }
+          icon={Zap}
+          color={streak > 0 ? '#E8E870' : '#6B7280'}
+        />
       </motion.div>
 
       {/* Charts */}

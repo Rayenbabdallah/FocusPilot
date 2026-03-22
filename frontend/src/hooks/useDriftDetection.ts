@@ -6,6 +6,7 @@ interface UseDriftDetectionParams {
   sessionId: string
   sprintId: string
   isActive: boolean
+  scrollElementId?: string
 }
 
 interface UseDriftDetectionResult {
@@ -20,21 +21,29 @@ export function useDriftDetection({
   sessionId,
   sprintId,
   isActive,
+  scrollElementId = 'content-scroll-area',
 }: UseDriftDetectionParams): UseDriftDetectionResult {
   const { isDrifting, reanchorQuestion, setDrifting, setReanchor } = useStore()
 
-  const inactivityTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const visibilityTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const scrollEventsRef = useRef<number[]>([])
-  const isTriggeringRef = useRef(false)
-  const tabHiddenAtRef = useRef<number | null>(null)
+  const inactivityTimerRef   = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const visibilityTimerRef   = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const isTriggeringRef      = useRef(false)
+  const tabHiddenAtRef       = useRef<number | null>(null)
+
+  // Scroll-thrash: track direction reversals, not raw event count
+  const lastScrollTopRef     = useRef<number | null>(null)
+  const lastScrollDirRef     = useRef<'up' | 'down' | null>(null)
+  const reversalTimesRef     = useRef<number[]>([])
 
   const [tabReturnSeconds, setTabReturnSeconds] = useState<number | null>(null)
 
-  const INACTIVITY_MS = 90_000        // 90s — tighter for ADHD
-  const VISIBILITY_MS = 60_000        // full drift overlay after 60s hidden
-  const SCROLL_THRASH_COUNT = 8
-  const SCROLL_THRASH_WINDOW_MS = 4_000
+  // 2 min inactivity — reading a dense paragraph without touching the mouse is normal
+  const INACTIVITY_MS           = 120_000
+  // Tab hidden 60s → full drift overlay
+  const VISIBILITY_MS           = 60_000
+  // 5 direction reversals within 3s = frantic back-and-forth = thrash
+  const REVERSAL_THRASH_COUNT   = 5
+  const REVERSAL_WINDOW_MS      = 3_000
 
   const triggerDrift = useCallback(
     async (signalType: string) => {
@@ -64,14 +73,30 @@ export function useDriftDetection({
   const dismissDrift = useCallback(() => {
     setDrifting(false)
     setReanchor(null)
-    isTriggeringRef.current = false
+    isTriggeringRef.current  = false
+    lastScrollTopRef.current = null
+    lastScrollDirRef.current = null
+    reversalTimesRef.current = []
     resetInactivityTimer()
-    scrollEventsRef.current = []
   }, [setDrifting, setReanchor, resetInactivityTimer])
 
   const dismissTabReturn = useCallback(() => {
     setTabReturnSeconds(null)
   }, [])
+
+  // Cancel all timers immediately when isActive goes false
+  useEffect(() => {
+    if (!isActive) {
+      if (inactivityTimerRef.current) {
+        clearTimeout(inactivityTimerRef.current)
+        inactivityTimerRef.current = null
+      }
+      if (visibilityTimerRef.current) {
+        clearTimeout(visibilityTimerRef.current)
+        visibilityTimerRef.current = null
+      }
+    }
+  }, [isActive])
 
   useEffect(() => {
     if (!isActive) return
@@ -93,45 +118,66 @@ export function useDriftDetection({
         if (hiddenAt !== null) {
           const secs = Math.round((Date.now() - hiddenAt) / 1000)
           tabHiddenAtRef.current = null
-          // Show welcome-back banner for any absence ≥ 20s
-          // (full drift overlay kicks in at 60s via the timer above)
-          if (secs >= 20) {
-            setTabReturnSeconds(secs)
-          }
+          if (secs >= 20) setTabReturnSeconds(secs)
         }
         resetInactivityTimer()
       }
     }
 
-    const handleScroll = () => {
+    const handleScroll = (e: Event) => {
       resetInactivityTimer()
-      const now = Date.now()
-      scrollEventsRef.current.push(now)
-      scrollEventsRef.current = scrollEventsRef.current.filter(
-        (t) => now - t <= SCROLL_THRASH_WINDOW_MS
-      )
-      if (scrollEventsRef.current.length > SCROLL_THRASH_COUNT) {
-        scrollEventsRef.current = []
-        triggerDrift('scroll_thrash')
+
+      const target = e.currentTarget as HTMLElement | null
+      const scrollTop = target ? target.scrollTop : window.scrollY
+
+      // Determine direction of this scroll tick
+      const prev = lastScrollTopRef.current
+      if (prev !== null) {
+        const dir: 'up' | 'down' = scrollTop < prev ? 'up' : 'down'
+
+        // Count only when direction reverses (down→up or up→down)
+        if (lastScrollDirRef.current !== null && lastScrollDirRef.current !== dir) {
+          const now = Date.now()
+          reversalTimesRef.current.push(now)
+          reversalTimesRef.current = reversalTimesRef.current.filter(
+            (t) => now - t <= REVERSAL_WINDOW_MS
+          )
+          if (reversalTimesRef.current.length >= REVERSAL_THRASH_COUNT) {
+            reversalTimesRef.current = []
+            triggerDrift('scroll_thrash')
+          }
+        }
+
+        lastScrollDirRef.current = dir
       }
+
+      lastScrollTopRef.current = scrollTop
     }
 
     resetInactivityTimer()
 
-    window.addEventListener('mousemove', handleActivity, { passive: true })
-    window.addEventListener('keydown', handleActivity, { passive: true })
-    window.addEventListener('scroll', handleScroll, { passive: true })
+    const scrollEl = scrollElementId
+      ? (document.getElementById(scrollElementId) ?? window)
+      : window
+
+    window.addEventListener('mousemove',  handleActivity,               { passive: true })
+    window.addEventListener('keydown',    handleActivity,               { passive: true })
+    window.addEventListener('click',      handleActivity,               { passive: true })
+    window.addEventListener('touchstart', handleActivity,               { passive: true })
+    scrollEl.addEventListener('scroll',   handleScroll as EventListener, { passive: true })
     document.addEventListener('visibilitychange', handleVisibilityChange)
 
     return () => {
-      window.removeEventListener('mousemove', handleActivity)
-      window.removeEventListener('keydown', handleActivity)
-      window.removeEventListener('scroll', handleScroll)
+      window.removeEventListener('mousemove',  handleActivity)
+      window.removeEventListener('keydown',    handleActivity)
+      window.removeEventListener('click',      handleActivity)
+      window.removeEventListener('touchstart', handleActivity)
+      scrollEl.removeEventListener('scroll',   handleScroll as EventListener)
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       if (inactivityTimerRef.current) clearTimeout(inactivityTimerRef.current)
       if (visibilityTimerRef.current) clearTimeout(visibilityTimerRef.current)
     }
-  }, [isActive, resetInactivityTimer, triggerDrift])
+  }, [isActive, scrollElementId, resetInactivityTimer, triggerDrift])
 
   return { isDrifting, reanchorQuestion, dismissDrift, tabReturnSeconds, dismissTabReturn }
 }

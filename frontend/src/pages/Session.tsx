@@ -947,6 +947,15 @@ function DriftOverlay({ question, onDismiss, onBreak }: DriftOverlayProps) {
                   </button>
                 </div>
               )}
+              {/* Always offer a break regardless of question type */}
+              <button
+                onClick={() => { onDismiss(); onBreak() }}
+                className="mt-6 text-xs text-zinc-500 hover:text-lavender transition-colors flex items-center gap-1.5 mx-auto"
+                style={{ color: undefined }}
+              >
+                <Clock size={11} />
+                Need a break instead? Take 5 minutes
+              </button>
             </>
           ) : (
             <div className="grid grid-cols-2 gap-4">
@@ -1335,10 +1344,21 @@ export default function Session() {
   const showQuizRef = useRef(false)
   const isDriftingRef = useRef(false)
 
+  // Drift detection must be paused whenever any overlay is covering the content
+  // — otherwise it fires "for no reason" while the user is in a quiz / break / etc.
+  const driftIsActive =
+    isSessionActive &&
+    currentSprint !== null &&
+    !showQuiz &&
+    !showBreakTimer &&
+    !showPrimingOverlay &&
+    !showEnergyCheck &&
+    !showFrustrationCard
+
   const { isDrifting, reanchorQuestion, dismissDrift, tabReturnSeconds, dismissTabReturn } = useDriftDetection({
     sessionId: currentSession?.id ?? '',
     sprintId: currentSprint?.id ?? '',
-    isActive: isSessionActive && currentSprint !== null,
+    isActive: driftIsActive,
   })
 
   useEffect(() => {
@@ -1418,7 +1438,7 @@ export default function Session() {
       const sprint: Sprint = {
         id: result.sprint_id,
         session_id: currentSession.id,
-        material_id: null,
+        material_id: result.material_id ?? null,
         sprint_number: result.sprint_number,
         duration_minutes: result.duration_minutes,
         content_chunk: result.chunk,

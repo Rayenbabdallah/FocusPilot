@@ -45,7 +45,7 @@ Standard tools expect students to self-impose structure, manage time, initiate t
 | **Working memory overload** | Sprint chunking breaks material into manageable pieces; key terms strip surfaces bold vocabulary; pre-reading prime sets a clear focus objective before each chunk |
 | **Time blindness** | Thick visual progress bar with real-time fill; color-coded countdown clock; dedicated break timer with visible 5-minute countdown |
 | **Passive reading loop** | Quiz checkpoints after every sprint ensure active recall; skim-time detection flags when content is being skipped too quickly |
-| **Attention drift** | 3-signal drift detection system: inactivity timeout (90s), tab visibility loss (60s), scroll thrash (>8 events in 4s); re-anchoring overlay pulls focus back with content-grounded recall prompts |
+| **Attention drift** | 3-signal drift detection system: inactivity timeout (120s), tab visibility loss (60s), scroll thrash (≥5 direction reversals in 3s); re-anchoring overlay pulls focus back with content-grounded recall prompts |
 | **Forgetting between sessions** | SM-2-based spaced repetition engine schedules reviews at optimal intervals; daily browser push notifications remind at the user's chosen time |
 
 ---
@@ -63,7 +63,7 @@ Standard tools expect students to self-impose structure, manage time, initiate t
 
 ### Attention & Focus
 
-- **Drift detection (3 signals)** — Inactivity trigger at 90 seconds of no interaction; tab visibility loss trigger at 60 seconds away; scroll thrash trigger at more than 8 scroll events in any 4-second window
+- **Drift detection (3 signals)** — Inactivity trigger at 120 seconds of no interaction; tab visibility loss trigger at 60 seconds away; scroll thrash trigger at 5 or more direction reversals (up↔down) within a 3-second window — distinguishing frantic back-and-forth from normal reading
 - **Re-anchoring overlay** — When drift is detected, a focused overlay presents an MCQ or free-text recall question drawn from the current content chunk to re-engage working memory
 - **Focus check-in** — Every 5 minutes, a lightweight self-assessment prompt appears: Locked in / Drifting / Lost it — logged for analytics
 - **Adaptive difficulty** — After 2 consecutive quiz scores below 50%, simplified mode auto-enables: shorter sentences, more visual breaks, reduced information density
@@ -225,22 +225,39 @@ Standard tools expect students to self-impose structure, manage time, initiate t
 
 - Node.js 18 or higher
 - Python 3.11 or higher
-- AWS Bedrock access with Claude model enabled (us-east-1 or equivalent region)
+- AWS Bedrock access *(optional — see Demo Mode below)*
+
+### Demo Mode (no AWS credentials needed)
+
+FocusPilot detects missing credentials automatically and switches to **demo mode**, where all AI features return realistic pre-built responses. You can fully test session planning, quiz generation, the AI tutor, cheatsheets, drift detection, and retention analytics without an AWS account.
+
+```bash
+cd backend
+cp .env.example .env        # leave AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY blank
+```
+
+The pre-seeded database (`focuspilot.db`) already contains a demo student, two study materials, completed sessions with quiz history, and items due for spaced repetition review — so the app is fully interactive from the first launch.
 
 ### Backend Setup
 
 ```bash
 cd backend
+
+# Create and activate virtual environment
 python -m venv venv
-source venv/bin/activate        # Windows: venv\Scripts\activate
+source venv/bin/activate          # macOS / Linux
+# venv\Scripts\activate           # Windows
+
 pip install -r requirements.txt
+
+# Copy env (blank credentials = demo mode; fill in real credentials for full AI)
 cp .env.example .env
-# Edit .env and fill in the following:
-#   AWS_ACCESS_KEY_ID=your_key
-#   AWS_SECRET_ACCESS_KEY=your_secret
-#   AWS_REGION=us-east-1
-python seed.py
-uvicorn main:app --reload --port 8000
+
+# Optional: re-seed demo data (database is already included in the repo)
+# python seed.py
+
+# Start the API server
+uvicorn app.main:app --reload --port 8000
 ```
 
 The backend API will be available at `http://localhost:8000`.

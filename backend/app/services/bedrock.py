@@ -49,22 +49,255 @@ def _sample_full_text(text: str, target_chars: int = 24000) -> str:
     )
 
 
+_DEMO_REFORMAT = """## 🎯 What You'll Learn
+This section introduces the key concepts in your study material and why they matter for real-world applications.
+
+## 📖 The Concept
+Think of it like a recipe — before you can cook, you need to understand each ingredient.
+
+**Core idea**: Every complex system is built from simpler, well-defined building blocks. Understanding those blocks lets you reason about anything.
+
+The formal version introduces notation and definitions that make communication precise.
+
+## 💡 Example
+Imagine sorting a deck of cards. You could:
+1. Pick up all cards and arrange them at once (unrealistic)
+2. Pick one card at a time and insert it in the right place — this is **insertion sort**, and it mirrors how humans naturally sort
+
+## 🔗 The Big Picture
+These concepts appear everywhere — from database indexing to how your GPS finds the fastest route. Mastering them unlocks patterns you'll recognize across all of computer science.
+
+## 🧠 Key Takeaways
+📌 Break complex problems into smaller, solved sub-problems
+📌 Understand the *why* behind each concept, not just the *what*
+📌 Real-world performance depends on choosing the right approach for the data
+📌 Practice is the only way to build intuition — reading is not enough
+📌 When stuck, draw a picture — visual models make abstract ideas concrete
+
+## ▶ Formulas
+▶ T(n) = O(n log n) → Time complexity grows as n-log-n — efficient for large inputs
+▶ S(n) = O(n) → Space complexity grows linearly with input size
+
+```mermaid
+flowchart TD
+    A[Start with raw content] --> B[Identify core concept]
+    B --> C[Find a real-world analogy]
+    C --> D[Build intuition step by step]
+    D --> E[Connect to bigger picture]
+    E --> F[Consolidate with key takeaways]
+```
+"""
+
+_DEMO_CHEATSHEET = """## 📋 Overview
+This material covers the fundamental concepts that form the backbone of the subject. Understanding these will unlock your ability to reason about advanced topics with confidence.
+
+## 🔑 Key Terms
+- **Algorithm**: A step-by-step procedure for solving a problem in finite time
+- **Data Structure**: A way of organizing data to enable efficient operations
+- **Complexity**: How resource usage (time/memory) grows with input size
+- **Recursion**: A function that calls itself with a smaller version of the problem
+- **Abstraction**: Hiding implementation details behind a clean interface
+
+## 📚 Core Concepts
+1. **Divide and Conquer** — Split a problem into smaller sub-problems, solve each, combine results. Used in merge sort, quicksort, binary search.
+2. **Dynamic Programming** — Cache solutions to overlapping sub-problems to avoid redundant computation. Memoization vs tabulation.
+3. **Graph Traversal** — BFS explores layer by layer (shortest path); DFS explores as deep as possible (cycle detection, topological sort).
+4. **Greedy Algorithms** — Make the locally optimal choice at each step. Works when local choices lead to global optima (Dijkstra, Huffman coding).
+5. **Amortized Analysis** — Some operations are expensive but rare; average cost over a sequence is low (e.g., dynamic array resize).
+
+## ▶ Formulas & Rules
+- O(1) < O(log n) < O(n) < O(n log n) < O(n²) < O(2ⁿ) — complexity hierarchy
+- Master Theorem: T(n) = aT(n/b) + f(n) — recurrence solution
+- Space-time tradeoff: more memory often buys faster runtime
+
+## ⚡ Quick-Fire Facts
+- Linked lists have O(1) insert at head but O(n) search
+- Hash tables give O(1) average lookup; worst case O(n) with bad hash
+- Binary search requires sorted input; gives O(log n) search
+- Stacks are LIFO; Queues are FIFO
+- Trees with n nodes have n-1 edges
+- A complete binary tree of height h has 2^(h+1)-1 nodes
+- Dijkstra fails on negative edges; use Bellman-Ford instead
+- DFS uses a stack (call stack in recursion); BFS uses a queue
+- In-order traversal of a BST gives sorted output
+- Merge sort is stable; quicksort is not (in standard form)
+
+## 🧠 Common Mistakes to Avoid
+- Confusing worst-case and average-case complexity
+- Forgetting base cases in recursive solutions (stack overflow)
+- Assuming O(n log n) is always better than O(n²) — constants matter for small n
+- Off-by-one errors in binary search boundary conditions
+- Modifying a list while iterating over it
+"""
+
+_DEMO_QUIZ = [
+    {
+        "question": "What is the time complexity of binary search on a sorted array of n elements?",
+        "options": ["A) O(n)", "B) O(log n)", "C) O(n log n)", "D) O(1)"],
+        "correct_answer": "B",
+        "explanation": "Binary search halves the search space at each step, giving O(log n). O(n) would be linear search, which doesn't exploit the sorted order.",
+        "difficulty": "recall",
+    },
+    {
+        "question": "Which data structure uses LIFO (Last In, First Out) ordering?",
+        "options": ["A) Queue", "B) Heap", "C) Stack", "D) Linked List"],
+        "correct_answer": "C",
+        "explanation": "A stack follows LIFO — the last element pushed is the first popped. Queues use FIFO. This is why the call stack in recursion unwinds in reverse order.",
+        "difficulty": "recall",
+    },
+    {
+        "question": "Why does dynamic programming improve over naive recursion?",
+        "options": [
+            "A) It uses less stack space by being iterative",
+            "B) It avoids recomputing overlapping sub-problems by caching results",
+            "C) It always finds a globally optimal solution",
+            "D) It reduces the number of function calls by using greedy choices",
+        ],
+        "correct_answer": "B",
+        "explanation": "DP's key insight is memoization — store the result of each sub-problem so it's computed only once. This converts exponential-time recursion to polynomial time for problems with overlapping sub-problems.",
+        "difficulty": "comprehension",
+    },
+    {
+        "question": "A graph has 7 nodes and 6 edges. Which of the following must be true?",
+        "options": [
+            "A) The graph contains a cycle",
+            "B) The graph is a tree if it is connected",
+            "C) Every node has degree at least 2",
+            "D) The graph is bipartite",
+        ],
+        "correct_answer": "B",
+        "explanation": "A connected graph with n nodes and exactly n-1 edges is a tree (no cycles). If the graph is connected and has exactly n-1 edges, it satisfies both tree properties.",
+        "difficulty": "comprehension",
+    },
+    {
+        "question": "You need to process tasks in the order they arrive, with no priority. Which data structure is most appropriate?",
+        "options": ["A) Min-heap", "B) Stack", "C) Queue", "D) Binary search tree"],
+        "correct_answer": "C",
+        "explanation": "A queue implements FIFO — tasks are processed in arrival order. A stack would reverse the order (LIFO). A heap would introduce priority ordering. This is the classic use case for queues (e.g., job schedulers, BFS).",
+        "difficulty": "application",
+    },
+]
+
+_DEMO_REANCHOR = {
+    "question": "In binary search, what happens to the search space at each step?",
+    "options": [
+        "A) It is halved — we discard the half where the target cannot be",
+        "B) It is reduced by one element at a time",
+        "C) It is doubled to explore more options",
+        "D) It stays the same but we mark visited elements",
+    ],
+    "correct_answer": "A",
+    "explanation": "Binary search compares the target to the middle element and discards the half where the target cannot exist, halving the search space each step — giving O(log n).",
+}
+
+_DEMO_SESSION_PLAN = {
+    "sprints": [
+        {
+            "title": "Sprint 1: Foundations & Core Concepts",
+            "duration_minutes": 15,
+            "focus": "Understand the fundamental definitions and build intuition with examples",
+            "material_hint": "Start from the beginning of the material",
+        },
+        {
+            "title": "Sprint 2: Key Algorithms & Patterns",
+            "duration_minutes": 15,
+            "focus": "Trace through the main algorithms step by step, identify patterns",
+            "material_hint": "Focus on the algorithm descriptions and pseudocode",
+        },
+        {
+            "title": "Sprint 3: Complexity & Trade-offs",
+            "duration_minutes": 15,
+            "focus": "Analyse time and space complexity, understand when to use each approach",
+            "material_hint": "Review the complexity tables and comparison sections",
+        },
+        {
+            "title": "Sprint 4: Applications & Practice",
+            "duration_minutes": 15,
+            "focus": "Apply concepts to practice problems and real-world scenarios",
+            "material_hint": "Work through examples and exercises at the end",
+        },
+        {
+            "title": "Sprint 5: Review & Synthesis",
+            "duration_minutes": 15,
+            "focus": "Connect all ideas, fill gaps, review anything unclear from earlier sprints",
+            "material_hint": "Go back to any sections that felt unclear",
+        },
+        {
+            "title": "Sprint 6: Self-Test",
+            "duration_minutes": 15,
+            "focus": "Quiz yourself on key concepts without looking at the material",
+            "material_hint": "Use the key takeaways as a checklist",
+        },
+    ],
+    "total_sprints": 6,
+}
+
+_DEMO_TUTOR_RESPONSES = [
+    "Great question! The key insight here is that we're trading memory for speed — by caching intermediate results, we avoid repeating work we've already done. Think of it like writing down your work on a math test rather than recalculating the same step twice.",
+    "Exactly right! You're thinking about it correctly. The base case is crucial — without it, the recursion never terminates. Always ask: 'What is the simplest version of this problem I can answer directly?'",
+    "The difference between BFS and DFS comes down to the data structure used internally. BFS uses a queue (FIFO) so it explores neighbours before going deeper. DFS uses a stack (or the call stack via recursion) so it dives deep before backtracking.",
+    "Don't worry — this trips everyone up at first! The trick is to think about *invariants*: what property is always true at each step of the algorithm? Once you identify the invariant, the correctness proof becomes much clearer.",
+    "You're on the right track. Remember: O(n log n) doesn't always mean 'better'. For small inputs (n < 20), even O(n²) algorithms can be faster in practice because of lower constant factors and cache behaviour.",
+]
+
+_DEMO_REEXPLAIN = """Let me try this from a completely different angle.
+
+**Think of it like GPS navigation:**
+Your GPS doesn't calculate every possible route — that would take forever. Instead, it uses smart shortcuts:
+
+1. **Divide the map into zones** — only look at roads near your current location first
+2. **Keep a list of "promising" paths** — update it as you discover shorter options
+3. **Stop early** — the moment you reach your destination, you're done
+4. **Remember dead ends** — don't explore the same road twice
+
+That's essentially what efficient algorithms do with data. The "smart shortcut" changes depending on the problem, but the principle is the same: **avoid unnecessary work**.
+
+**The one thing to remember: Every algorithm is just a strategy for avoiding unnecessary work — the cleverness is in knowing what to skip.**
+"""
+
+_DEMO_RETENTION = {
+    "overall_retention": 78.5,
+    "strong_areas": ["Core definitions", "Algorithm mechanics", "Time complexity basics"],
+    "weak_areas": ["Space complexity trade-offs", "Edge cases in recursion"],
+    "summary": "Strong performance on foundational concepts with room to deepen understanding of advanced trade-offs.",
+    "recommendation": "Review space complexity and practice tracing recursive calls on paper before the next session.",
+}
+
+_DEMO_PROFILE_ANALYSIS = {
+    "best_focus_time_of_day": "morning",
+    "preferred_content_format": "pdf",
+    "weak_topics": ["space complexity", "graph algorithms", "dynamic programming edge cases"],
+    "insights": "Consistent performance on recall questions; comprehension and application questions show the most growth potential.",
+}
+
+
 class BedrockService:
     def __init__(self):
         settings = get_settings()
         self._settings = settings
 
+        # Demo mode: explicit flag OR no AWS credentials configured
+        self._demo: bool = settings.demo_mode or not (
+            settings.aws_access_key_id and settings.aws_secret_access_key
+        )
+
+        if self._demo:
+            logger.info("BedrockService running in DEMO MODE — no AWS calls will be made")
+            self._client = None
+            return
+
         kwargs = {
             "region_name": settings.aws_region,
             "service_name": "bedrock-runtime",
         }
-        if settings.aws_access_key_id and settings.aws_secret_access_key:
-            kwargs["aws_access_key_id"] = settings.aws_access_key_id
-            kwargs["aws_secret_access_key"] = settings.aws_secret_access_key
+        kwargs["aws_access_key_id"] = settings.aws_access_key_id
+        kwargs["aws_secret_access_key"] = settings.aws_secret_access_key
 
         self._client = boto3.client(**kwargs)
 
     def _resolve_model_id(self, model: str) -> str:
+        if self._demo:
+            return "demo"
         mapping = {
             "pro": self._settings.bedrock_model_pro,
             "lite": self._settings.bedrock_model_lite,
@@ -79,6 +312,8 @@ class BedrockService:
         system: Optional[str] = None,
         max_tokens: int = 1024,
     ) -> str:
+        if self._demo:
+            return "[Demo mode] AI response placeholder. Configure AWS credentials to enable full AI features."
         model_id = self._resolve_model_id(model)
 
         messages = [{"role": "user", "content": [{"text": prompt}]}]
@@ -117,6 +352,8 @@ class BedrockService:
         max_tokens: int = 2048,
     ) -> str:
         """Send a text + image message to Claude via Bedrock (multimodal)."""
+        if self._demo:
+            return "Page content extracted in demo mode. Full text extraction requires AWS credentials."
         model_id = self._resolve_model_id(model)
 
         messages = [
@@ -193,6 +430,8 @@ class BedrockService:
         Transform raw study text into a deeply explanatory, visually rich ADHD lesson.
         Uses Nova Pro for maximum quality. Teaches, explains, and builds intuition.
         """
+        if self._demo:
+            return _DEMO_REFORMAT
         prompt = (
             "You are an expert tutor. Transform the raw study content below into a complete, "
             "deeply explanatory lesson for a student with ADHD.\n\n"
@@ -246,6 +485,8 @@ class BedrockService:
         Generate MCQ questions with 3 difficulty tiers and thorough explanations.
         Always returns exactly num_questions questions.
         """
+        if self._demo:
+            return _DEMO_QUIZ[:num_questions]
         prompt = (
             f"Generate exactly {num_questions} multiple-choice comprehension questions "
             f"based on the following study content.\n\n"
@@ -291,6 +532,8 @@ class BedrockService:
         ]
 
     async def generate_reanchor_question(self, content: str) -> dict:
+        if self._demo:
+            return _DEMO_REANCHOR
         prompt = (
             "Generate a single quick re-focus MCQ question to help a distracted student "
             "re-engage with their study material. The question should be based on a specific, "
@@ -324,6 +567,8 @@ class BedrockService:
         Generate a concise, structured cheatsheet/résumé for a study material.
         Samples the full document so no section is missed.
         """
+        if self._demo:
+            return _DEMO_CHEATSHEET
         # Build a representative sample: beginning + evenly-spaced middle sections + end
         content = _sample_full_text(full_text, target_chars=24000)
 
@@ -367,6 +612,12 @@ class BedrockService:
         materials_summary: str,
         available_minutes: int = 90,
     ) -> dict:
+        if self._demo:
+            num_sprints = max(1, available_minutes // 15)
+            plan = dict(_DEMO_SESSION_PLAN)
+            plan["sprints"] = _DEMO_SESSION_PLAN["sprints"][:num_sprints]
+            plan["total_sprints"] = len(plan["sprints"])
+            return plan
         num_sprints = max(1, available_minutes // 15)
         prompt = (
             f"Create a structured study session plan for a student with ADHD.\n"
@@ -409,6 +660,8 @@ class BedrockService:
         return {"sprints": sprints, "total_sprints": num_sprints}
 
     def test_bedrock_connection(self) -> bool:
+        if self._demo:
+            return True  # demo mode always "connected"
         try:
             self._client.converse(
                 modelId=self._settings.bedrock_model_micro,
@@ -425,6 +678,10 @@ class BedrockService:
         current_content: str,
         conversation_history: list,
     ) -> str:
+        if self._demo:
+            import hashlib
+            idx = int(hashlib.md5(question.encode()).hexdigest(), 16) % len(_DEMO_TUTOR_RESPONSES)
+            return _DEMO_TUTOR_RESPONSES[idx]
         history_text = ""
         if conversation_history:
             lines = []
@@ -455,6 +712,12 @@ class BedrockService:
         return await self.reformat_content(text, format_hint="adhd")
 
     async def generate_retention_snapshot(self, session_results: list) -> dict:
+        if self._demo:
+            scores = [r.get("score", 0) for r in session_results if "score" in r]
+            avg = round(sum(scores) / len(scores), 1) if scores else _DEMO_RETENTION["overall_retention"]
+            result = dict(_DEMO_RETENTION)
+            result["overall_retention"] = avg
+            return result
         prompt = (
             f"Analyze these study sprint results and generate a retention snapshot.\n"
             f"Results: {json.dumps(session_results[:20])}\n\n"
@@ -487,6 +750,8 @@ class BedrockService:
     async def analyze_learning_profile(
         self, session_history: list, current_profile: dict
     ) -> dict:
+        if self._demo:
+            return _DEMO_PROFILE_ANALYSIS
         prompt = (
             f"Analyze this student's learning history and identify patterns.\n"
             f"Session history (last 10): {json.dumps(session_history[:10])}\n"
@@ -517,6 +782,8 @@ class BedrockService:
 
     async def reexplain_chunk(self, text: str) -> str:
         """Re-explain a content chunk from scratch using a different approach for a confused student."""
+        if self._demo:
+            return _DEMO_REEXPLAIN
         prompt = (
             "A student just said 'I'm lost' after reading the content below. "
             "Re-explain it using a COMPLETELY DIFFERENT approach:\n\n"

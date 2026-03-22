@@ -84,10 +84,7 @@ async def upload_material(
         )
     except Exception as e:
         await db.rollback()
-        raise HTTPException(
-            status_code=500,
-            detail={"error": str(e), "context": "Failed to process and store material"},
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to process and store material: {e}")
     material.file_path = file_path
     if subject and subject.strip():
         material.subject = subject.strip()
@@ -181,10 +178,7 @@ async def get_cheatsheet(
             material.cheatsheet = await bedrock.generate_cheatsheet(material.title, full_text)
             await db.commit()
         except Exception as e:
-            raise HTTPException(
-                status_code=500,
-                detail={"error": str(e), "context": "Failed to generate cheatsheet"},
-            )
+            raise HTTPException(status_code=500, detail=f"Failed to generate cheatsheet: {e}")
 
     return {
         "material_id": material.id,

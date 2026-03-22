@@ -42,8 +42,8 @@ export interface Sprint {
 }
 
 export interface SprintStartResponse {
-  sprint_id: string; chunk: ContentChunk; sprint_number: number
-  objective: string; duration_minutes: number
+  sprint_id: string; material_id: string | null; chunk: ContentChunk
+  sprint_number: number; objective: string; duration_minutes: number
 }
 
 export interface RetentionSnapshot {
@@ -122,6 +122,7 @@ export interface ProfileStats {
   total_sessions: number; total_study_minutes: number
   avg_retention_score: number; items_due_for_review: number
   topics_mastered_count: number; sessions_streak: number
+  best_streak: number; last_study_days_ago: number | null
 }
 
 export interface TutorMessage {

@@ -194,18 +194,24 @@ async def get_profile_stats(db, student_id: str) -> dict:
     )
     topics_mastered = mastered_result.scalar() or 0
 
-    # Sessions streak (consecutive calendar days with a completed session)
+    # Sessions streak — count any day where at least one sprint was completed
+    # (not just fully-closed sessions; partial completion counts for ADHD users)
+    from app.models.session import Sprint, StudySession
     streak_result = await db.execute(
-        select(StudySession)
+        select(Sprint)
+        .join(StudySession, Sprint.session_id == StudySession.id)
         .where(
             StudySession.student_id == student_id,
-            StudySession.status == "completed",
+            Sprint.status == "completed",
+            Sprint.ended_at.isnot(None),
         )
-        .order_by(StudySession.ended_at.desc())
-        .limit(30)
+        .order_by(Sprint.ended_at.desc())
+        .limit(60)
     )
-    completed_sessions = streak_result.scalars().all()
-    sessions_streak = _calculate_streak(completed_sessions)
+    completed_sprints = streak_result.scalars().all()
+    sessions_streak = _calculate_streak_from_sprints(completed_sprints)
+    best_streak = _calculate_best_streak(completed_sprints)
+    last_study_days_ago = _days_since_last_sprint(completed_sprints)
 
     return {
         "total_sessions": profile.total_sessions,
@@ -214,6 +220,8 @@ async def get_profile_stats(db, student_id: str) -> dict:
         "items_due_for_review": int(items_due),
         "topics_mastered_count": int(topics_mastered),
         "sessions_streak": sessions_streak,
+        "best_streak": best_streak,
+        "last_study_days_ago": last_study_days_ago,
     }
 
 
@@ -226,6 +234,56 @@ def _calculate_streak(sessions: list) -> int:
     streak = 0
     current = date.today()
     for _ in range(30):
+        if current in day_set:
+            streak += 1
+            current -= timedelta(days=1)
+        else:
+            break
+    return streak
+
+
+def _days_since_last_sprint(sprints: list) -> int | None:
+    """Return how many days ago the most recent completed sprint was, or None if never."""
+    from datetime import date
+    dates = [s.ended_at.date() for s in sprints if s.ended_at]
+    if not dates:
+        return None
+    return (date.today() - max(dates)).days
+
+
+def _calculate_best_streak(sprints: list) -> int:
+    """Return the longest consecutive-day run across all completed sprints."""
+    from datetime import timedelta
+    if not sprints:
+        return 0
+    day_set = sorted({s.ended_at.date() for s in sprints if s.ended_at})
+    best = current = 1
+    for i in range(1, len(day_set)):
+        if day_set[i] - day_set[i - 1] == timedelta(days=1):
+            current += 1
+            best = max(best, current)
+        else:
+            current = 1
+    return best
+
+
+def _calculate_streak_from_sprints(sprints: list) -> int:
+    """Count consecutive calendar days that have at least one completed sprint."""
+    from datetime import date, timedelta
+    if not sprints:
+        return 0
+    day_set = {s.ended_at.date() for s in sprints if s.ended_at}
+    streak = 0
+    # Allow streak to include today OR yesterday as the most recent day
+    # (so a streak isn't broken just because you haven't studied yet today)
+    current = date.today()
+    if current not in day_set:
+        yesterday = current - timedelta(days=1)
+        if yesterday in day_set:
+            current = yesterday
+        else:
+            return 0
+    for _ in range(60):
         if current in day_set:
             streak += 1
             current -= timedelta(days=1)

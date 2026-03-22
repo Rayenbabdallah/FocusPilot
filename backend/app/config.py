@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     bedrock_model_micro: str = "amazon.nova-micro-v1:0"
     database_url: str = "sqlite+aiosqlite:///./focuspilot.db"
     upload_dir: str = "./uploads"
+    cors_origins: str = "http://localhost:5173"
+    demo_mode: bool = False
 
     model_config = {"env_file": ".env", "extra": "ignore"}
 

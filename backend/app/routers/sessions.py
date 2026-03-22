@@ -49,30 +49,6 @@ class ReexplainBody(BaseModel):
 
 # ─── Routes ────────────────────────────────────────────────────────────────────
 
-@router.get("/active/{student_id}")
-async def get_active_session(
-    student_id: str,
-    db: AsyncSession = Depends(get_db),
-) -> Dict[str, Any] | None:
-    """Return the active session for a student, or null if none exists (200 either way)."""
-    result = await db.execute(
-        select(StudySession)
-        .where(StudySession.student_id == student_id, StudySession.status == "active")
-        .order_by(StudySession.started_at.desc())
-    )
-    session = result.scalar_one_or_none()
-    if not session:
-        return None
-    return {
-        "session_id": session.id,
-        "student_id": session.student_id,
-        "goal": session.goal,
-        "status": session.status,
-        "started_at": session.started_at.isoformat() if session.started_at else None,
-        "ended_at": session.ended_at.isoformat() if session.ended_at else None,
-    }
-
-
 @router.post("/start")
 async def start_session(
     body: StartSessionBody,
@@ -129,13 +105,11 @@ async def start_sprint(
         await db.commit()
     except Exception as e:
         await db.rollback()
-        raise HTTPException(
-            status_code=500,
-            detail={"error": str(e), "context": "Failed to start sprint"},
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to start sprint: {e}")
 
     return {
         "sprint_id": sprint.id,
+        "material_id": sprint.material_id,
         "chunk": chunk,
         "sprint_number": sprint.sprint_number,
         "objective": chunk.get("title", f"Sprint {sprint.sprint_number + 1}"),
@@ -266,10 +240,7 @@ async def close_session(
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail={"error": str(e), "context": "Failed to close session"},
-        )
+        raise HTTPException(status_code=500, detail=f"Failed to close session: {e}")
 
 
 @router.get("/active/{student_id}")

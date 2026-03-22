@@ -52,9 +52,12 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+from app.config import get_settings as _get_settings
+_cors_origins = [o.strip() for o in _get_settings().cors_origins.split(",") if o.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=_cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
