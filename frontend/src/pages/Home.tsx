@@ -314,6 +314,7 @@ export default function Home() {
     setSession, setSprint, setChunk, setPlan, clearSession,
     lastGoal, lastDuration, setLastGoal, setLastDuration,
     reminderTime, setReminderTime,
+    currentSession,
   } = useStore()
 
   const [nameInput, setNameInput] = useState('')
@@ -527,9 +528,42 @@ export default function Home() {
         <p className="mt-3 text-zinc-400 text-lg font-light">Built for the ADHD brain.</p>
       </motion.section>
 
+      {/* ── Resume active session ───────────────────────────────────────────── */}
+      <AnimatePresence>
+        {currentSession && (
+          <motion.section
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <motion.button
+              whileHover={{ scale: 1.01 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => navigate('/session')}
+              className="w-full text-left rounded-2xl p-5 border transition-all duration-300"
+              style={{ background: 'rgba(152,232,158,0.07)', borderColor: 'rgba(152,232,158,0.25)' }}
+            >
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-2.5 h-2.5 rounded-full flex-shrink-0 animate-pulse" style={{ backgroundColor: '#98E89E' }} />
+                  <div className="min-w-0">
+                    <p className="text-xs font-medium uppercase tracking-widest mb-0.5" style={{ color: '#98E89E' }}>Session in progress</p>
+                    <p className="text-white font-semibold text-sm truncate">{currentSession.goal}</p>
+                  </div>
+                </div>
+                <span className="flex-shrink-0 text-sm font-semibold px-4 py-1.5 rounded-full" style={{ background: 'rgba(152,232,158,0.15)', color: '#98E89E' }}>
+                  Resume →
+                </span>
+              </div>
+            </motion.button>
+          </motion.section>
+        )}
+      </AnimatePresence>
+
       {/* ── Quick Start ─────────────────────────────────────────────────────── */}
       <AnimatePresence>
-        {lastGoal && materials.length > 0 && !sessionLoading && (
+        {lastGoal && materials.length > 0 && !sessionLoading && !currentSession && (
           <motion.section
             initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}

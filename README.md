@@ -20,11 +20,12 @@
 3. [System Architecture](#3-system-architecture)
 4. [Tech Stack](#4-tech-stack)
 5. [Getting Started](#5-getting-started)
-6. [Project Structure](#6-project-structure)
-7. [ADHD Design System](#7-adhd-design-system)
-8. [API Reference](#8-api-reference)
-9. [Competition Context](#9-competition-context)
-10. [License](#10-license)
+6. [Testing Guide for Judges](#6-testing-guide-for-judges)
+7. [Project Structure](#7-project-structure)
+8. [ADHD Design System](#8-adhd-design-system)
+9. [API Reference](#9-api-reference)
+10. [Competition Context](#10-competition-context)
+11. [License](#11-license)
 
 ---
 
@@ -282,7 +283,76 @@ npm run preview
 
 ---
 
-## 6. Project Structure
+## 6. Testing Guide for Judges
+
+The pre-seeded database contains a demo student with two study materials, a completed session with quiz history, and an active session ready to resume. No AWS credentials are needed.
+
+### Reset to a clean demo state
+
+If the database has been modified from previous runs:
+
+```bash
+cd backend
+# Stop the server first, then:
+python seed.py          # skips if demo data already exists
+# To force a full reset:
+# del focuspilot.db     (Windows cmd)
+# rm focuspilot.db      (bash/macOS)
+# python seed.py
+```
+
+Clear browser state: open DevTools → Application → Local Storage → Clear, or run in the browser console:
+```javascript
+localStorage.clear(); location.reload();
+```
+
+### Feature walkthrough
+
+**Home page**
+- A green **"Session in progress — Resume →"** card appears automatically (active session is pre-seeded)
+- Click **Resume →** to enter the live session
+
+**Session — sprint**
+- Read the thermodynamics content chunk
+- Click the **speaker icon** to hear it read aloud (text-to-speech)
+- Click **"I'm lost"** to get an AI re-explanation of the content
+- Open the **AI Tutor** panel (chat icon, bottom right) and ask any question
+- Click **"Done with this sprint"** when ready
+
+**Session — quiz**
+- Answer the 3 multiple-choice questions
+- Answer one in under 3 seconds → fast-answer warning appears
+- Submit → retention snapshot and score shown
+
+**Session — cheatsheet**
+- After completing the quiz the **"Cheatsheet"** button appears in the header
+- Click it to view the full material summary
+
+**Session — drift detection**
+- During an active sprint, switch to another browser tab for **60 seconds** → drift overlay fires on return
+- Or scroll rapidly up and down **5+ times in 3 seconds** → overlay fires
+- On the overlay click **"Need a break instead?"** → 5-minute break timer starts
+
+**History page**
+- Shows the completed thermodynamics session with a sprint score chart (100% → 67% → 33%)
+- Click any session row to expand details and retry the topic
+
+**Profile page**
+- Shows XP level, achievement badges, weak topics bar chart, and coaching recommendation cards
+- Streak counter reflects the seeded session history
+
+**Spaced repetition**
+- 2 review items are already due from the seeded session
+- Navigate to History → review queue to answer them
+
+**Upload a new material**
+- Go to Home → drag and drop any PDF or paste text into the text area
+- The AI processes it and creates a new study material (demo mode returns pre-built content)
+- Select it alongside existing materials and start a new session
+
+---
+
+## 7. Project Structure
 
 ```
 FocusPilot/
