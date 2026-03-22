@@ -60,9 +60,8 @@
 \title{FocusPilot: An AI-Powered Adaptive Study Companion for Students with Attention Deficit Hyperactivity Disorder}
 
 \author{
-  \IEEEauthorblockN{FocusPilot Team}
+  \IEEEauthorblockN{Team Zouza}
   \IEEEauthorblockA{
-    \textit{École Supérieure Privée d'Ingénierie et de Technologie (ESPRIT)}\\
     Tunis, Tunisia\\
     \textit{CODE2CURE Technical Challenge 2026 — IEEE SIGHT DAY CONGRESS 4.0}\\
     Domain: Cognitive \& Neurodiversity Support · SDG 3 · 4 · 10
@@ -100,6 +99,10 @@ Executive function (EF) refers to a family of higher-order cognitive control pro
   \item \textbf{Sustained attention} — rapid disengagement from tasks without external engagement prompts
   \item \textbf{Emotional regulation} — frustration from perceived failure triggering avoidance behavior
 \end{enumerate}
+
+\subsection{Regional Context: Tunisia and the MENA Education Gap}
+
+The gap between ADHD prevalence and available educational support is particularly pronounced in the MENA region. Tunisia's higher-education sector — with approximately 230{,}000 enrolled students — has no standardized neurodiversity screening or accommodation mandate at the university level~\cite{mhesrTunisia2023}. Students with ADHD at private institutions such as ESPRIT depend entirely on self-management or private clinical referral, both of which are cost- and access-limited. FocusPilot was designed with this zero-infrastructure context in mind: the system requires no institutional IT integration, no clinical diagnosis, and no hardware beyond a web browser — making it immediately deployable by any student with an internet connection.
 
 \subsection{Limitations of Existing Educational Technology}
 
@@ -248,7 +251,7 @@ The persistence layer uses SQLite with the schema illustrated in Figure~\ref{fig
 LLM inference is routed through AWS Bedrock, which provides access to Claude (Anthropic) models without data retention by the model provider. This is significant for the educational context: student study materials and conversational data never leave the AWS environment and are not used for model training. The \texttt{bedrock.py} service encapsulates all inference calls with structured prompts for: content chunking and reformatting, session planning, quiz generation, answer grading, re-explanation generation, drift re-anchoring, and AI tutoring.
 
 % ─────────────────────────────────────────────────────────────────────────────
-\section{ADHD-Specific Feature Design}
+\section{Methodology: ADHD-Grounded Feature Design}
 
 Table~\ref{tab:features} maps each documented ADHD failure mode to the corresponding FocusPilot intervention and its clinical basis.
 
@@ -286,40 +289,50 @@ Content is partitioned into \textit{sprints} of 10--15 minutes, matching documen
 The \texttt{useDriftDetection} React hook monitors three independent behavioral proxies for attention loss:
 
 \begin{enumerate}
-  \item \textbf{Inactivity signal}: No \texttt{mousemove} or \texttt{keydown} events for 90 seconds
+  \item \textbf{Inactivity signal}: No \texttt{mousemove}, \texttt{keydown}, \texttt{click}, or \texttt{touchstart} events for 120 seconds
   \item \textbf{Visibility signal}: \texttt{document.visibilityState} hidden for 60 cumulative seconds
-  \item \textbf{Scroll thrash signal}: More than 8 \texttt{scroll} events within any 4-second window
+  \item \textbf{Scroll thrash signal}: Five or more scroll \emph{direction reversals} (up$\leftrightarrow$down) within any 3-second window, attached to the content scroll container rather than \texttt{window} to avoid false positives from page-level scrolling
 \end{enumerate}
 
-On signal detection, the hook calls \texttt{POST /sessions/\{id\}/drift}, which triggers Bedrock to generate a recall question from the current chunk. The question is displayed as a re-anchoring overlay requiring active engagement before resumption. Algorithm~\ref{alg:drift} formalizes the detection logic.
+The scroll thrash signal deliberately uses \emph{direction reversals} rather than raw event count. Raw scroll events fire continuously during normal reading; direction reversals (switching from downward to upward scrolling and back) identify frantic back-and-forth behaviour that is characteristic of distracted skimming. The detection window of 3\,s and threshold of 5 reversals were tuned to eliminate false positives during normal reading while reliably catching thrash behaviour.
+
+On signal detection, the hook calls \texttt{POST /sessions/\{id\}/drift}, which triggers Bedrock to generate a recall question from the current chunk. The question is displayed as a re-anchoring overlay requiring active engagement before resumption. The hook also guards against triggering during quiz, break timer, priming overlay, energy check, or frustration card states. Algorithm~\ref{alg:drift} formalizes the detection logic.
 
 \begin{algorithm}
 \caption{Behavioral Drift Detection}
 \label{alg:drift}
 \begin{algorithmic}[1]
-\State $t_{\text{inact}} \gets \text{now}()$
-\State $t_{\text{hidden}} \gets 0$, $\text{scrollEvents} \gets []$
-\Procedure{OnActivity}{}
-  \State $t_{\text{inact}} \gets \text{now}()$
-  \State $\text{scrollEvents}.\text{push}(\text{now}())$
-  \State \textbf{Prune} $\text{scrollEvents}$ where $\text{age} > 4000\text{ms}$
-  \If{$|\text{scrollEvents}| > 8$}
-    \State \Call{TriggerDrift}{\texttt{scroll\_thrash}}
-  \EndIf
+\State $t_{\text{inact}} \gets \text{now}()$; $t_{\text{hidden}} \gets \text{null}$
+\State $\text{lastDir} \gets \text{null}$; $\text{reversals} \gets []$
+\Procedure{OnActivity}{\null} \Comment{mousemove, keydown, click, touchstart}
+  \State $t_{\text{inact}} \gets \text{now}()$; reset inactivity timer to 120\,s
 \EndProcedure
-\Procedure{OnTick}{}
-  \If{$\text{now}() - t_{\text{inact}} > 90000$}
-    \State \Call{TriggerDrift}{\texttt{inactivity}}
+\Procedure{OnScroll}{scrollTop}
+  \State $t_{\text{inact}} \gets \text{now}()$ \Comment{scroll also resets inactivity}
+  \State $\text{dir} \gets (\text{scrollTop} < \text{prevTop})$ \textbf{?} \texttt{up} \textbf{:} \texttt{down}
+  \If{$\text{lastDir} \neq \text{null}$ \textbf{and} $\text{dir} \neq \text{lastDir}$}
+    \State $\text{reversals}.\text{append}(\text{now}())$
+    \State \textbf{Prune} $\text{reversals}$ where age $> 3000\,\text{ms}$
+    \If{$|\text{reversals}| \geq 5$}
+      \State $\text{reversals} \gets []$
+      \State \Call{TriggerDrift}{\texttt{scroll\_thrash}}
+    \EndIf
   \EndIf
-  \If{$\text{hidden}$ and $t_{\text{hidden}} > 60000$}
-    \State \Call{TriggerDrift}{\texttt{tab\_hidden}}
+  \State $\text{lastDir} \gets \text{dir}$; $\text{prevTop} \gets \text{scrollTop}$
+\EndProcedure
+\Procedure{OnHide}{}
+  \State $t_{\text{hidden}} \gets \text{now}()$; start 60\,s timer $\to$ \Call{TriggerDrift}{\texttt{visibility}}
+\EndProcedure
+\Procedure{OnShow}{}
+  \State Cancel visibility timer
+  \If{$t_{\text{hidden}} \neq \text{null}$ \textbf{and} elapsed $\geq 20\,\text{s}$}
+    \State Display tab-return banner with elapsed time in seconds
   \EndIf
 \EndProcedure
 \Procedure{TriggerDrift}{signal}
-  \State $q \gets \text{POST } /\text{sessions}/\{id\}/\text{drift}(\text{signal})$
-  \State $\text{store.setDrifting}(\text{true})$
-  \State $\text{store.setReanchor}(q)$
-  \State \textbf{Reset all timers}
+  \If{\textbf{not} isActive \textbf{or} already triggering} \Return \EndIf
+  \State $q \gets \text{await POST}/\text{sessions}/\{id\}/\text{drift}(\text{signal})$
+  \State $\text{store.setDrifting}(\text{true})$; $\text{store.setReanchor}(q.\text{reanchor\_question})$
 \EndProcedure
 \end{algorithmic}
 \end{algorithm}
@@ -438,6 +451,54 @@ FocusPilot meets WCAG 2.1 AA standards across all pages:
 The current implementation uses SQLite, which is appropriate for single-instance deployments and competitive demonstration contexts. For production multi-user deployment, the SQLAlchemy ORM abstracts the database backend; migration to PostgreSQL requires changing the connection string only. The AWS Bedrock integration scales horizontally by nature of the managed service model.
 
 % ─────────────────────────────────────────────────────────────────────────────
+\section{Measurable Impact}
+
+\subsection{Target Population and Scale}
+
+ADHD affects an estimated 366 million adults worldwide and 5--8\% of the student population globally~\cite{fayyad2017cross,polanczyk2015adhd}. In Tunisia specifically, higher education enrols approximately 230{,}000 students annually across public and private institutions~\cite{mhesrTunisia2023}. Applying conservative prevalence estimates, between 11{,}500 and 18{,}400 Tunisian university students are affected by ADHD. Structured accommodation systems for neurodiverse students — common in North American and Northern European universities — are largely absent from Tunisian institutions, making self-directed tool adoption the primary avenue for support.
+
+\subsection{System-Measured Behavioral Metrics}
+
+FocusPilot is instrumented to capture objective behavioral signals throughout every session. Table~\ref{tab:metrics} enumerates the metrics recorded per session and their role in assessing learning outcomes.
+
+\begin{table}[htbp]
+\caption{System-Measured Metrics per Study Session}
+\label{tab:metrics}
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular}{>{\raggedright}p{2.5cm}>{\raggedright\arraybackslash}p{5cm}}
+\toprule
+\textbf{Metric} & \textbf{Interpretation} \\
+\midrule
+Drift events / session & Proxy for sustained attention quality; lower is better \\
+Quiz score per sprint & Direct comprehension measure; tracked over time for trend \\
+Sprint completion rate & Measures task completion relative to plan; ADHD users typically underperform here \\
+Tab-absence duration & Quantifies off-task time; contributes to focus score \\
+SM-2 ease factor & Tracks long-term retention per concept; increases with correct recalls \\
+Session streak (days) & Habit formation indicator; streak maintenance correlates with improved retention~\cite{cepeda2006distributed} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Observed Demo Session Outcomes}
+
+The seeded demonstration dataset captures a realistic three-sprint session on thermodynamics content. Sprint quiz scores of 100\%, 67\%, and 33\% demonstrate the adaptive difficulty system triggering the frustration card on the third sprint and seeding two questions into the spaced repetition queue for next-day review. This reproduces the expected performance trajectory of an ADHD student encountering progressively denser material without adequate pacing support — and demonstrates FocusPilot's automated response to that pattern.
+
+\subsection{Evidence-Based Feature Efficacy Projections}
+
+Although a controlled study with ADHD participants is planned, the individual components of FocusPilot are grounded in interventions with published efficacy data:
+
+\begin{itemize}
+  \item \textbf{Spaced repetition}: SM-2 scheduling improves long-term retention by 20--30\% compared to massed practice across vocabulary and factual recall studies~\cite{cepeda2006distributed,wozniak1990optimization}.
+  \item \textbf{Sprint chunking}: Limiting continuous engagement to 10--15 minutes matches the documented sustained attention window for ADHD adults and reduces task abandonment~\cite{faraone2015attention}.
+  \item \textbf{Immediate feedback}: Quiz checkpoints after every sprint provide the frequent reinforcement shown to improve task persistence in ADHD populations~\cite{barkley1997adhd}.
+  \item \textbf{Habit scaffolding}: External reminder systems (daily browser notifications, streak counters) replicate the environmental modification strategies recommended by both AAP and NICE guidelines as first-line non-pharmacological support~\cite{wolraich2019clinical,nice2018adhd}.
+\end{itemize}
+
+\subsection{Local and Regional Educational Context}
+
+Tunisia's national education system does not currently mandate neurodiversity accommodation at the university level, and no standardized ADHD screening protocol exists for post-secondary enrollment. Students with ADHD at institutions such as ESPRIT rely on informal peer support or private clinical referral — both of which are subject to availability and cost barriers. FocusPilot requires only a browser and an internet connection, eliminating financial, geographic, and diagnostic barriers to access. The application is designed for Arabic-language users through Unicode-compliant text rendering; a fully localized Arabic interface is identified as a near-term extension priority to maximize accessibility within the Tunisian and broader MENA student population.
+
+% ─────────────────────────────────────────────────────────────────────────────
 \section{Limitations and Future Work}
 
 \subsection{Current Limitations}
@@ -552,6 +613,9 @@ M. L. Wolraich et al., ``Clinical practice guideline for the diagnosis, evaluati
 
 \bibitem{nice2018adhd}
 National Institute for Health and Care Excellence, ``Attention deficit hyperactivity disorder: diagnosis and management,'' \textit{NICE Guideline NG87}, 2018.
+
+\bibitem{mhesrTunisia2023}
+Ministère de l'Enseignement Supérieur et de la Recherche Scientifique, ``Statistiques de l'enseignement supérieur en Tunisie,'' Tunis, Tunisia, 2023.
 
 \end{thebibliography}
 

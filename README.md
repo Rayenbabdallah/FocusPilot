@@ -4,12 +4,11 @@
 
 [![Competition](https://img.shields.io/badge/Competition-CODE2CURE%202026-blue)](https://ieee-sight.org)
 [![IEEE SIGHT](https://img.shields.io/badge/IEEE-SIGHT%20DAY%20CONGRESS%204.0-blue)](https://ieee-sight.org)
-[![Team](https://img.shields.io/badge/Team-ESPRIT-green)](https://esprit.tn)
 [![SDGs](https://img.shields.io/badge/SDGs-3%20%7C%204%20%7C%2010-orange)](https://sdgs.un.org)
 [![License](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
 **Competition:** CODE2CURE Technical Challenge 2026 · IEEE SIGHT DAY CONGRESS 4.0
-**Team:** ESPRIT
+**Team:** Zouza
 **Domain:** Cognitive & Neurodiversity Support · SDG 3 · SDG 4 · SDG 10
 
 ---
@@ -45,7 +44,7 @@ Standard tools expect students to self-impose structure, manage time, initiate t
 | **Working memory overload** | Sprint chunking breaks material into manageable pieces; key terms strip surfaces bold vocabulary; pre-reading prime sets a clear focus objective before each chunk |
 | **Time blindness** | Thick visual progress bar with real-time fill; color-coded countdown clock; dedicated break timer with visible 5-minute countdown |
 | **Passive reading loop** | Quiz checkpoints after every sprint ensure active recall; skim-time detection flags when content is being skipped too quickly |
-| **Attention drift** | 3-signal drift detection system: inactivity timeout (120s), tab visibility loss (60s), scroll thrash (≥5 direction reversals in 3s); re-anchoring overlay pulls focus back with content-grounded recall prompts |
+| **Attention drift** | 3-signal drift detection system: inactivity timeout (120s of no mouse/keyboard/touch), tab visibility loss (60s hidden), scroll thrash (≥5 direction reversals in 3s — distinguishes frantic skimming from normal reading); re-anchoring overlay with AI-generated recall MCQ |
 | **Forgetting between sessions** | SM-2-based spaced repetition engine schedules reviews at optimal intervals; daily browser push notifications remind at the user's chosen time |
 
 ---
@@ -95,17 +94,16 @@ Standard tools expect students to self-impose structure, manage time, initiate t
 ### History & Analytics
 
 - **Session history** — Complete log of all past sessions grouped by week, with filters for status (completed, abandoned, in-progress)
-- **Real focus trend** — Per-session focus score computed from actual interaction timestamps, drift events, and check-in responses — not self-reported data
-- **28-day study calendar heatmap** — Visual calendar showing study activity intensity across the last 4 weeks
+- **Per-session score chart** — Bar chart of quiz scores across sprints within a selected session, with color-coded performance bands
 - **Retry past sessions** — Any historical session can be relaunched with "Study this topic again" to revisit material
-- **Priority-ranked weak topics** — A bar chart ranks topics by combined factors of low quiz scores, high drift frequency, and time since last review
 
 ### Profile & Gamification
 
 - **XP progression system** — Experience points awarded for completed sprints, quizzes, and streak maintenance; 5 progression levels: Beginner → Learner → Scholar → Expert → Master
 - **12 achievement badges** — Unlockable badges for milestones including streaks, perfect quiz scores, total hours studied, and consistency goals
+- **Weak topics bar chart** — Ranked bar chart of topics identified as weak by the AI learning profile, surfaced on the profile page for targeted review
 - **Coaching recommendation cards** — Up to 4 actionable, personalized recommendations generated from session analytics (e.g., "Your best scores come after a break — try adding one mid-session")
-- **Best study window** — Computed from historical session data to identify the time of day when the user's quiz scores and focus scores are consistently highest
+- **Best focus time** — Computed from the AI learning profile to surface the time of day when the user historically studies most effectively
 
 ### Accessibility & PWA
 
@@ -477,7 +475,7 @@ FocusPilot uses a purpose-built design system tuned for the perceptual and atten
 |---|---|---|
 | `GET` | `/profile` | Retrieve user profile: XP, level, badges, settings |
 | `PATCH` | `/profile` | Update profile settings (notification time, energy default) |
-| `GET` | `/profile/analytics` | Aggregated analytics: focus trend, heatmap, weak topics |
+| `GET` | `/profile/analytics` | Aggregated analytics: focus trend, weak topics, session history |
 | `GET` | `/profile/coaching` | Fetch up to 4 AI-generated coaching recommendation cards |
 | `GET` | `/profile/best-window` | Compute and return the user's best historical study window |
 
