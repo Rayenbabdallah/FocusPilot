@@ -222,7 +222,7 @@ Standard tools expect students to self-impose structure, manage time, initiate t
 ### Prerequisites
 
 - Node.js 18 or higher
-- Python 3.11 or higher
+- Python 3.11 or higher (tested up to 3.14)
 - AWS Bedrock access *(optional — see Demo Mode below)*
 
 ### Demo Mode (no AWS credentials needed)
@@ -244,7 +244,8 @@ cd backend
 # Create and activate virtual environment
 python -m venv venv
 source venv/bin/activate          # macOS / Linux
-# venv\Scripts\activate           # Windows
+source venv/Scripts/activate      # Windows (bash)
+# venv\Scripts\activate.bat       # Windows (cmd)
 
 pip install -r requirements.txt
 
@@ -286,72 +287,39 @@ npm run preview
 ```
 FocusPilot/
 ├── README.md
+├── docs/
+│   └── technical_report.tex           # IEEE-format technical report
 ├── frontend/
 │   ├── public/
 │   │   ├── manifest.json              # PWA manifest
-│   │   ├── sw.js                      # Service worker
-│   │   └── icons/                     # PWA icons (192px, 512px)
+│   │   └── sw.js                      # Cache-first service worker
 │   ├── src/
 │   │   ├── main.tsx                   # App entry point
 │   │   ├── App.tsx                    # Root component + routing
 │   │   ├── index.css                  # Tailwind base + design tokens
 │   │   ├── components/
-│   │   │   ├── ui/                    # Reusable primitives
-│   │   │   │   ├── Button.tsx
-│   │   │   │   ├── Card.tsx
-│   │   │   │   ├── Badge.tsx
-│   │   │   │   ├── Modal.tsx
-│   │   │   │   ├── Toast.tsx
-│   │   │   │   └── ProgressBar.tsx
-│   │   │   ├── session/               # Session page components
-│   │   │   │   ├── SprintView.tsx
-│   │   │   │   ├── DriftOverlay.tsx
-│   │   │   │   ├── QuizCheckpoint.tsx
-│   │   │   │   ├── BreakTimer.tsx
-│   │   │   │   ├── KeyTermsStrip.tsx
-│   │   │   │   ├── FocusCheckin.tsx
-│   │   │   │   └── AITutorChat.tsx
-│   │   │   ├── home/                  # Home page components
-│   │   │   │   ├── QuickStartCard.tsx
-│   │   │   │   ├── UploadForm.tsx
-│   │   │   │   └── EnergyCheckin.tsx
-│   │   │   ├── history/               # History page components
-│   │   │   │   ├── SessionCard.tsx
-│   │   │   │   ├── CalendarHeatmap.tsx
-│   │   │   │   └── WeakTopicsChart.tsx
-│   │   │   └── profile/               # Profile page components
-│   │   │       ├── XPBar.tsx
-│   │   │       ├── BadgeGrid.tsx
-│   │   │       └── CoachingCards.tsx
+│   │   │   ├── Layout.tsx             # App shell with bottom nav
+│   │   │   ├── Skeleton.tsx           # Loading skeleton
+│   │   │   └── ToastContainer.tsx     # Global toast notifications
 │   │   ├── pages/
-│   │   │   ├── Home.tsx
-│   │   │   ├── Session.tsx
-│   │   │   ├── History.tsx
-│   │   │   └── Profile.tsx
-│   │   ├── store/
-│   │   │   ├── sessionStore.ts        # Active session state
-│   │   │   ├── profileStore.ts        # User profile + XP
-│   │   │   ├── historyStore.ts        # Past sessions cache
-│   │   │   └── uiStore.ts             # UI state (toasts, modals)
+│   │   │   ├── Home.tsx               # Upload, quick-start, energy check-in
+│   │   │   ├── Session.tsx            # Full session UI (sprint, quiz, drift, tutor)
+│   │   │   ├── History.tsx            # Past sessions list + score charts
+│   │   │   └── Profile.tsx            # XP, badges, weak topics, coaching cards
 │   │   ├── hooks/
 │   │   │   ├── useDriftDetection.ts   # 3-signal drift logic
-│   │   │   ├── useSpacedRepetition.ts # SM-2 scheduler
-│   │   │   ├── useFocusTrend.ts       # Real focus score compute
-│   │   │   └── useNotifications.ts    # PWA push notifications
+│   │   │   ├── useStudyReminder.ts    # Browser notification scheduler
+│   │   │   └── useToast.ts            # Toast helper
+│   │   ├── store/
+│   │   │   └── index.ts               # Zustand store (session, profile, UI state)
 │   │   ├── api/
-│   │   │   ├── client.ts              # Axios instance + interceptors
+│   │   │   ├── client.ts              # Axios instance + error interceptor
 │   │   │   ├── sessions.ts
 │   │   │   ├── materials.ts
 │   │   │   ├── quiz.ts
 │   │   │   └── profile.ts
-│   │   ├── lib/
-│   │   │   ├── mermaid.ts             # Mermaid.js initializer
-│   │   │   ├── tts.ts                 # Text-to-speech wrapper
-│   │   │   └── sm2.ts                 # SM-2 algorithm implementation
 │   │   └── types/
-│   │       ├── session.ts
-│   │       ├── quiz.ts
-│   │       └── profile.ts
+│   │       └── index.ts               # All shared TypeScript types
 │   ├── index.html
 │   ├── vite.config.ts
 │   ├── tailwind.config.ts
@@ -359,41 +327,36 @@ FocusPilot/
 │   └── package.json
 │
 ├── backend/
-│   ├── main.py                        # FastAPI app entry point
-│   ├── seed.py                        # Database seeder
+│   ├── main.py                        # Uvicorn entry point
+│   ├── seed.py                        # Demo data seeder
 │   ├── requirements.txt
 │   ├── .env.example
-│   ├── routers/
-│   │   ├── sessions.py
-│   │   ├── materials.py
-│   │   ├── quiz.py
-│   │   └── profile.py
-│   ├── services/
-│   │   ├── ingestion.py               # PDF parsing + chunking
-│   │   ├── session_engine.py          # Sprint orchestration
-│   │   ├── quiz_engine.py             # MCQ generation + SM-2 scoring
-│   │   └── profile_service.py         # XP, badges, coaching
-│   ├── models/
-│   │   ├── base.py                    # SQLAlchemy base + async engine
-│   │   ├── session.py
-│   │   ├── material.py
-│   │   ├── quiz_item.py
-│   │   └── profile.py
-│   ├── schemas/
-│   │   ├── session.py                 # Pydantic request/response schemas
-│   │   ├── material.py
-│   │   ├── quiz.py
-│   │   └── profile.py
-│   ├── core/
-│   │   ├── config.py                  # Settings from environment
-│   │   ├── database.py                # Async session factory
-│   │   └── bedrock.py                 # AWS Bedrock client wrapper
-│   └── focuspilot.db                  # SQLite database (generated)
+│   ├── focuspilot.db                  # Pre-seeded SQLite database
+│   └── app/
+│       ├── main.py                    # FastAPI app + CORS + routers
+│       ├── config.py                  # Pydantic settings (env vars)
+│       ├── database.py                # Async SQLAlchemy session factory
+│       ├── routers/
+│       │   ├── sessions.py            # Session + sprint + drift + tutor endpoints
+│       │   ├── materials.py           # Upload, list, cheatsheet endpoints
+│       │   ├── quiz.py                # Quiz generate, grade, review endpoints
+│       │   └── profile.py             # Profile, stats, spaced repetition endpoints
+│       ├── services/
+│       │   ├── bedrock.py             # AWS Bedrock client + demo mode fallbacks
+│       │   ├── ingestion.py           # PDF/text parsing + ADHD reformatting
+│       │   ├── session_engine.py      # Sprint orchestration + streak logic
+│       │   ├── quiz_engine.py         # MCQ generation + SM-2 scoring
+│       │   └── profile_service.py     # Learning profile + stats aggregation
+│       ├── models/
+│       │   ├── student.py
+│       │   ├── material.py
+│       │   ├── session.py             # StudySession, Sprint, DriftEvent
+│       │   ├── quiz.py                # Quiz, SpacedRepetitionItem
+│       │   └── profile.py             # LearningProfile
+│       └── utils/
+│           └── text_processing.py     # Text cleaning utilities
 │
 └── ui-refrence/                       # Design reference assets
-    ├── design-tokens.css
-    ├── components/
-    └── mockups/
 ```
 
 ---
