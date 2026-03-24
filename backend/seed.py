@@ -223,6 +223,201 @@ SPRINT_3_QUESTIONS = [
 SPRINT_3_ANSWERS = ["B", "C", "A"]
 
 
+# ── Pre-formatted demo chunks (markdown, ADHD-optimised) ─────────────────────
+
+THERMO_CHUNKS_MD = [
+    {
+        "index": 0,
+        "text": """\
+## Introduction to Thermodynamics
+
+Thermodynamics is the branch of physics that deals with **heat**, **work**, and **temperature**, and their relation to **energy**, **entropy**, and the physical properties of matter.
+
+---
+
+### The First Law: Energy Conservation
+
+> 💡 **Key principle:** Energy cannot be created or destroyed — only converted from one form to another.
+
+The First Law is expressed as:
+
+`▶ ΔU = Q − W`
+
+- **ΔU** — change in internal energy of the system
+- **Q** — heat added to the system
+- **W** — work done by the system on its surroundings
+
+### Internal Energy
+
+**Internal energy (U)** represents the total kinetic and potential energy of all particles within a thermodynamic system.
+
+- When the system **absorbs heat Q** → internal energy **increases**
+- When the system **does work W** → internal energy **decreases**
+
+> 🔧 **Real-world application:** A heat engine converts thermal energy into mechanical work through cyclic processes — the foundation of cars, power plants, and turbines.
+""",
+        "original_text": "",
+        "word_count": 120,
+    },
+    {
+        "index": 1,
+        "text": """\
+## The Second Law and Entropy
+
+The Second Law states that **the total entropy of an isolated system can never decrease over time**.
+
+> 🧠 **Intuition:** Spontaneous processes always move toward greater disorder — this is why heat flows from hot to cold, never the reverse.
+
+Entropy change for a reversible process:
+
+`▶ ΔS = Q_rev / T`
+
+For **irreversible processes**: ΔS > Q / T
+
+---
+
+## Heat Transfer Mechanisms
+
+| Mechanism | How it works | Governing law |
+|---|---|---|
+| **Conduction** | Direct molecular contact | Fourier's Law: Q/t = kA(ΔT/Δx) |
+| **Convection** | Bulk fluid motion | Newton's Law of Cooling |
+| **Radiation** | Electromagnetic waves (no medium) | Stefan-Boltzmann Law |
+""",
+        "original_text": "",
+        "word_count": 110,
+    },
+    {
+        "index": 2,
+        "text": """\
+## Carnot Efficiency
+
+The **Carnot cycle** is the theoretical maximum efficiency of any heat engine operating between two temperature reservoirs:
+
+`▶ η = 1 − T_cold / T_hot`
+
+> ⚠️ **Important:** No real engine can exceed Carnot efficiency. Temperatures must be in **Kelvin**.
+
+**Example:** A heat engine operating between 300 K and 600 K has maximum efficiency:
+η = 1 − 300/600 = **50%**
+
+---
+
+## Thermodynamic Process Types
+
+| Process | What stays constant | Key equation |
+|---|---|---|
+| **Isothermal** | Temperature (ΔT = 0) | PV = constant |
+| **Adiabatic** | No heat exchange (Q = 0) | ΔU = −W |
+| **Isobaric** | Pressure (ΔP = 0) | W = PΔV |
+| **Isochoric** | Volume (ΔV = 0) | W = 0, ΔU = Q |
+
+---
+
+## Applications
+
+Understanding the limits imposed by thermodynamic laws is essential for designing efficient energy systems:
+
+- **Power generation** — steam turbines, gas turbines, nuclear reactors
+- **Refrigeration** — reversed Carnot cycle extracts heat from cold reservoirs
+- **Combustion engines** — petrol and diesel engines approximate ideal cycles
+- **Atmospheric modelling** — adiabatic lapse rate governs weather patterns
+""",
+        "original_text": "",
+        "word_count": 150,
+    },
+]
+
+ADHD_CHUNKS_MD = [
+    {
+        "index": 0,
+        "text": """\
+## ADHD and Executive Function
+
+**Attention Deficit Hyperactivity Disorder (ADHD)** affects approximately **5–10% of students worldwide**. Its most significant academic impact comes from effects on **executive function** — the cognitive control system governing goal-directed behaviour.
+
+### The Three Core Executive Function Domains
+
+- **Working memory** — holding and manipulating information in mind
+- **Cognitive flexibility** — shifting between tasks and strategies
+- **Inhibitory control** — suppressing irrelevant stimuli and impulses
+
+In students with ADHD, these systems operate with reduced efficiency, creating **specific and predictable** study challenges.
+
+---
+
+## Working Memory: The Passive Reading Loop
+
+> 🧠 **The problem:** A student may read an entire paragraph and arrive at the end retaining nothing — not from lack of effort, but because the working memory buffer was overwhelmed before information could consolidate.
+
+This produces the **passive reading loop**: eyes moving, comprehension absent. Strategies that work:
+
+- Break reading into short sprints (10–15 min)
+- Use a focus objective before each chunk
+- Quiz yourself immediately after reading
+
+---
+
+## Task Initiation Difficulty
+
+**Task initiation difficulty** arises from reduced prefrontal cortex activation during planning and startup phases.
+
+> 💡 The neurological reality: an ADHD brain requires **external activation scaffolding** to begin tasks. Staring at an open textbook for 45 minutes while fully intending to study is not laziness — it is a **neurobiological startup failure**.
+""",
+        "original_text": "",
+        "word_count": 160,
+    },
+    {
+        "index": 1,
+        "text": """\
+## Time Blindness
+
+**Time blindness** describes the impaired subjective sense of time experienced by people with ADHD.
+
+- Hours disappear during **hyperfocus** on engaging material
+- Required readings feel **interminable** even when short
+- Without external time structure, study sessions can collapse entirely
+
+> ⚠️ **Exam risk:** This asymmetry makes exam preparation hazardous. A visible countdown timer is one of the most effective low-cost interventions.
+
+---
+
+## Emotional Dysregulation
+
+ADHD often comes with difficulty regulating emotional responses to performance feedback.
+
+A poor quiz score can activate **shame and frustration** that shuts down cognitive function for hours. Traditional grading feedback reinforces this cycle.
+
+> 💡 **Reframe the data:** Performance results are **information**, not judgment. Non-judgmental feedback design is critical in ADHD-aware educational tools.
+
+---
+
+## Effective Accommodation Strategies
+
+Effective ADHD support means **externalising the missing executive function**:
+
+| Strategy | What it replaces |
+|---|---|
+| Automated session planning | Executive planning |
+| Built-in time structure | Time management |
+| Non-judgmental feedback | Emotional regulation |
+| Adaptive content delivery | Cognitive load management |
+| Spaced repetition reminders | Prospective memory |
+
+> 🎯 **Key insight:** ADHD students don't need to try harder — they need systems that compensate for the executive function the condition impairs.
+""",
+        "original_text": "",
+        "word_count": 160,
+    },
+]
+
+# Map material title → pre-formatted demo chunks
+_DEMO_CHUNKS_BY_TITLE: dict[str, list[dict]] = {
+    "Introduction to Thermodynamics": THERMO_CHUNKS_MD,
+    "ADHD and Executive Function": ADHD_CHUNKS_MD,
+}
+
+
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
 def _basic_chunks(text: str, chunk_size: int = 300) -> list[dict]:
@@ -248,7 +443,38 @@ async def _create_material(
     material_type: str,
     raw_text: str,
 ) -> Material:
-    """Create a material, trying Bedrock ADHD reformatting with fallback to basic chunking."""
+    """
+    Create a material.
+
+    In demo mode (no AWS credentials) we use basic chunking directly so the
+    seeded sprint content contains the actual study text rather than a generic
+    placeholder from the demo reformat response.  With real credentials we call
+    the full ingestion pipeline and get proper ADHD-reformatted chunks.
+    """
+    from app.services.bedrock import BedrockService
+    bedrock = BedrockService()
+
+    if bedrock._demo:
+        # Demo mode: use pre-formatted markdown chunks so the session page renders
+        # headings, bullet points, tables, and callout cards properly.
+        chunks = _DEMO_CHUNKS_BY_TITLE.get(title) or _basic_chunks(raw_text)
+        # Fill original_text from raw if blank (used by simplified mode)
+        for ch in chunks:
+            if not ch.get("original_text"):
+                ch["original_text"] = raw_text
+        material = Material(
+            id=str(uuid.uuid4()),
+            student_id=student_id,
+            title=title,
+            type=material_type,
+            raw_text=raw_text,
+        )
+        material.set_chunks(chunks)
+        db.add(material)
+        await db.flush()
+        print(f"  ✓ '{title}' — demo mode, {len(chunks)} formatted chunks")
+        return material
+
     try:
         from app.services.ingestion import process_and_store_material
         material = await process_and_store_material(
@@ -261,7 +487,7 @@ async def _create_material(
         print(f"  ✓ '{title}' — AI-reformatted, {len(material.get_chunks())} chunks")
         return material
     except Exception as e:
-        print(f"  ⚠ Bedrock unavailable ({e.__class__.__name__}). Using basic chunking for '{title}'.")
+        print(f"  ⚠ Bedrock error ({e.__class__.__name__}). Falling back to basic chunking for '{title}'.")
         chunks = _basic_chunks(raw_text)
         material = Material(
             id=str(uuid.uuid4()),
@@ -279,7 +505,7 @@ async def _create_material(
 
 # ── Main seed function ────────────────────────────────────────────────────────
 
-async def seed() -> None:
+async def seed(force: bool = False) -> None:
     settings = get_settings()
     engine = create_async_engine(settings.database_url, echo=False)
 
@@ -291,14 +517,34 @@ async def seed() -> None:
 
     async with AsyncSessionLocal() as db:
 
-        # ── Guard: skip if already seeded ────────────────────────────────────
+        # ── Guard: skip if already seeded (unless --force) ───────────────────
         existing = await db.execute(
             select(Student).where(Student.email == "demo@focuspilot.ai")
         )
-        if existing.scalar_one_or_none():
+        demo_student = existing.scalar_one_or_none()
+        if demo_student and not force:
             print("✓ Demo data already exists. Run with --force to overwrite.")
             await engine.dispose()
             return
+
+        if demo_student and force:
+            print("⚠ --force: deleting existing demo data and re-seeding…")
+            # Cascade-delete via raw DELETE in dependency order
+            from sqlalchemy import text
+            demo_id = "00000000-0000-0000-0000-000000000001"
+            for stmt in [
+                "DELETE FROM learning_profiles WHERE student_id = :sid",
+                "DELETE FROM spaced_repetition_items WHERE student_id = :sid",
+                "DELETE FROM drift_events WHERE session_id IN (SELECT id FROM study_sessions WHERE student_id = :sid)",
+                "DELETE FROM quizzes WHERE session_id IN (SELECT id FROM study_sessions WHERE student_id = :sid)",
+                "DELETE FROM sprints WHERE session_id IN (SELECT id FROM study_sessions WHERE student_id = :sid)",
+                "DELETE FROM study_sessions WHERE student_id = :sid",
+                "DELETE FROM materials WHERE student_id = :sid",
+                "DELETE FROM students WHERE id = :sid",
+            ]:
+                await db.execute(text(stmt), {"sid": demo_id})
+            await db.commit()
+            print("  ✓ Existing demo data cleared")
 
         now = datetime.utcnow()
 
@@ -520,19 +766,213 @@ async def seed() -> None:
         )
         db.add(drift)
 
+        # ── Additional historical sessions (3-day arc) ────────────────────────
+        print("\n── Creating historical session arc ───────────────────────────")
+
+        # Session 2 — 3 days ago: ADHD material, 45 min, strong performance
+        s2_start = now - timedelta(days=3, hours=1)
+        s2_end   = s2_start + timedelta(minutes=45)
+        session2 = StudySession(
+            id=str(uuid.uuid4()),
+            student_id=student.id,
+            goal="Understand ADHD executive function & study strategies",
+            status="completed",
+            started_at=s2_start,
+            ended_at=s2_end,
+        )
+        session2.set_planned_sprints([
+            {"title": "Working Memory & Passive Reading", "duration_minutes": 15,
+             "focus": "Working memory impairment and the passive reading loop", "material_hint": "ADHD"},
+            {"title": "Task Initiation & Time Blindness", "duration_minutes": 15,
+             "focus": "Prefrontal cortex, startup failure, time perception", "material_hint": "ADHD"},
+            {"title": "Accommodation Strategies", "duration_minutes": 15,
+             "focus": "External scaffolding and adaptive study design", "material_hint": "ADHD"},
+        ])
+        db.add(session2)
+        await db.flush()
+
+        mat2_chunks = mat2.get_chunks()
+        s2_sprint_ids: list[str] = []
+        for i in range(3):
+            chunk = mat2_chunks[i] if i < len(mat2_chunks) else {"index": i, "text": "ADHD study strategies", "word_count": 10}
+            sp = Sprint(
+                id=str(uuid.uuid4()),
+                session_id=session2.id,
+                material_id=mat2.id,
+                sprint_number=i,
+                duration_minutes=15,
+                status="completed",
+                started_at=s2_start + timedelta(minutes=i * 16),
+                ended_at=s2_start + timedelta(minutes=i * 16 + 14),
+            )
+            sp.set_content_chunk({
+                "index": chunk.get("index", i),
+                "text": chunk.get("text", ""),
+                "material_title": mat2.title,
+                "title": ["Working Memory & Passive Reading", "Task Initiation & Time Blindness", "Accommodation Strategies"][i],
+                "word_count": chunk.get("word_count", 0),
+            })
+            db.add(sp)
+            await db.flush()
+            s2_sprint_ids.append(sp.id)
+
+        # Session 2 quizzes — strong performance (90%, 80%, 90%)
+        s2_quiz_data = [
+            (["A", "B", "C"], 90.0),
+            (["A", "B", "C"], 80.0),
+            (["A", "B", "C"], 90.0),
+        ]
+        for i, (answers, score) in enumerate(s2_quiz_data):
+            q = Quiz(
+                id=str(uuid.uuid4()),
+                sprint_id=s2_sprint_ids[i],
+                session_id=session2.id,
+                score=score,
+                completed_at=s2_start + timedelta(minutes=i * 16 + 15),
+            )
+            q.set_questions(SPRINT_1_QUESTIONS)
+            q.set_answers(answers)
+            db.add(q)
+        await db.flush()
+        print(f"  ✓ Session 2 (ADHD material) — 3 days ago, avg 87%")
+
+        # Session 3 — 2 days ago: Thermodynamics review, 30 min, improving
+        s3_start = now - timedelta(days=2, hours=2)
+        s3_end   = s3_start + timedelta(minutes=30)
+        session3 = StudySession(
+            id=str(uuid.uuid4()),
+            student_id=student.id,
+            goal="Thermodynamics review — focus on Second Law and entropy",
+            status="completed",
+            started_at=s3_start,
+            ended_at=s3_end,
+        )
+        session3.set_planned_sprints([
+            {"title": "Entropy Deep Dive", "duration_minutes": 15,
+             "focus": "Entropy definition, calculation, arrow of time", "material_hint": "Thermodynamics"},
+            {"title": "Carnot & Efficiency", "duration_minutes": 15,
+             "focus": "Carnot efficiency, heat reservoirs, irreversibility", "material_hint": "Thermodynamics"},
+        ])
+        db.add(session3)
+        await db.flush()
+
+        s3_sprint_ids: list[str] = []
+        for i in range(2):
+            chunk = mat1_chunks[i] if i < len(mat1_chunks) else {"index": i, "text": "", "word_count": 0}
+            sp = Sprint(
+                id=str(uuid.uuid4()),
+                session_id=session3.id,
+                material_id=mat1.id,
+                sprint_number=i,
+                duration_minutes=15,
+                status="completed",
+                started_at=s3_start + timedelta(minutes=i * 16),
+                ended_at=s3_start + timedelta(minutes=i * 16 + 14),
+            )
+            sp.set_content_chunk({
+                "index": chunk.get("index", i),
+                "text": chunk.get("text", ""),
+                "material_title": mat1.title,
+                "title": ["Entropy Deep Dive", "Carnot & Efficiency"][i],
+                "word_count": chunk.get("word_count", 0),
+            })
+            db.add(sp)
+            await db.flush()
+            s3_sprint_ids.append(sp.id)
+
+        # Session 3 quizzes — improving (67%, 100%)
+        for i, (answers, score) in enumerate([(SPRINT_2_ANSWERS, 66.7), (["A", "A", "C"], 100.0)]):
+            q = Quiz(
+                id=str(uuid.uuid4()),
+                sprint_id=s3_sprint_ids[i],
+                session_id=session3.id,
+                score=score,
+                completed_at=s3_start + timedelta(minutes=i * 16 + 15),
+            )
+            q.set_questions(SPRINT_2_QUESTIONS)
+            q.set_answers(list(answers))
+            db.add(q)
+        await db.flush()
+        print(f"  ✓ Session 3 (Thermo review) — 2 days ago, avg 83%")
+
+        # Session 4 — yesterday: Both materials, 60 min, best session yet
+        s4_start = now - timedelta(days=1, hours=3)
+        s4_end   = s4_start + timedelta(minutes=60)
+        session4 = StudySession(
+            id=str(uuid.uuid4()),
+            student_id=student.id,
+            goal="Pre-exam revision — thermodynamics processes and ADHD exam strategies",
+            status="completed",
+            started_at=s4_start,
+            ended_at=s4_end,
+        )
+        session4.set_planned_sprints([
+            {"title": "Thermodynamic Processes", "duration_minutes": 15,
+             "focus": "Isothermal, adiabatic, isobaric, isochoric", "material_hint": "Thermodynamics"},
+            {"title": "First Law Applications", "duration_minutes": 15,
+             "focus": "ΔU = Q − W worked examples and sign conventions", "material_hint": "Thermodynamics"},
+            {"title": "ADHD Exam Strategies", "duration_minutes": 15,
+             "focus": "Time management, emotional regulation during exams", "material_hint": "ADHD"},
+            {"title": "Final Self-Test", "duration_minutes": 15,
+             "focus": "Mixed questions across both topics", "material_hint": "Both"},
+        ])
+        db.add(session4)
+        await db.flush()
+
+        s4_sprint_ids: list[str] = []
+        for i in range(4):
+            mat = mat1 if i < 2 else mat2
+            chunks_src = mat1_chunks if i < 2 else mat2_chunks
+            chunk = chunks_src[i % len(chunks_src)] if chunks_src else {"index": i, "text": "", "word_count": 0}
+            sp = Sprint(
+                id=str(uuid.uuid4()),
+                session_id=session4.id,
+                material_id=mat.id,
+                sprint_number=i,
+                duration_minutes=15,
+                status="completed",
+                started_at=s4_start + timedelta(minutes=i * 16),
+                ended_at=s4_start + timedelta(minutes=i * 16 + 14),
+            )
+            sp.set_content_chunk({
+                "index": chunk.get("index", i),
+                "text": chunk.get("text", ""),
+                "material_title": mat.title,
+                "title": ["Thermodynamic Processes", "First Law Applications", "ADHD Exam Strategies", "Final Self-Test"][i],
+                "word_count": chunk.get("word_count", 0),
+            })
+            db.add(sp)
+            await db.flush()
+            s4_sprint_ids.append(sp.id)
+
+        # Session 4 quizzes — best yet (100%, 100%, 90%, 100%)
+        for i, score in enumerate([100.0, 100.0, 90.0, 100.0]):
+            q = Quiz(
+                id=str(uuid.uuid4()),
+                sprint_id=s4_sprint_ids[i],
+                session_id=session4.id,
+                score=score,
+                completed_at=s4_start + timedelta(minutes=i * 16 + 15),
+            )
+            q.set_questions(SPRINT_1_QUESTIONS)
+            q.set_answers(["A", "B", "C"])
+            db.add(q)
+        await db.flush()
+        print(f"  ✓ Session 4 (pre-exam revision) — yesterday, avg 98%")
+
         # ── Learning profile ──────────────────────────────────────────────────
         print("\n── Creating learning profile ─────────────────────────────────")
         profile = LearningProfile(
             id=str(uuid.uuid4()),
             student_id=student.id,
-            avg_focus_duration_minutes=18.0,
+            avg_focus_duration_minutes=19.5,
             best_focus_time_of_day="evening",
             preferred_content_format="text",
-            total_sessions=1,
-            total_study_minutes=60,
-            updated_at=session_end,
+            total_sessions=4,
+            total_study_minutes=195,
+            updated_at=s4_end,
         )
-        profile.set_weak_topics(["entropy", "heat transfer", "isothermal processes"])
+        profile.set_weak_topics(["entropy and irreversibility", "isothermal vs adiabatic processes", "heat transfer equations"])
         db.add(profile)
 
         # ── Commit everything ────────────────────────────────────────────────
@@ -541,13 +981,16 @@ async def seed() -> None:
     await engine.dispose()
     print(f"\n{'─' * 55}")
     print(f"✓ Demo data created successfully!")
-    print(f"  Student ID : 00000000-0000-0000-0000-000000000001")
-    print(f"  Materials  : {mat1.title}, {mat2.title}")
-    print(f"  Session    : {session.goal}")
-    print(f"  Review due : 2 items")
+    print(f"  Student ID   : 00000000-0000-0000-0000-000000000001")
+    print(f"  Materials    : {mat1.title}, {mat2.title}")
+    print(f"  Sessions     : 4 completed + 1 active (ready to resume)")
+    print(f"  Quiz history : 12 sprints across 4 days")
+    print(f"  Review due   : 2 spaced-repetition items")
+    print(f"  Profile      : 195 min studied, weak topics identified")
     print(f"{'─' * 55}")
     print(f"\n  Open http://localhost:5173 to see FocusPilot in action.")
 
 
 if __name__ == "__main__":
-    asyncio.run(seed())
+    force = "--force" in sys.argv
+    asyncio.run(seed(force=force))

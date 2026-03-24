@@ -49,225 +49,232 @@ def _sample_full_text(text: str, target_chars: int = 24000) -> str:
     )
 
 
-_DEMO_REFORMAT = """## 🎯 What You'll Learn
-This section introduces the key concepts in your study material and why they matter for real-world applications.
+_DEMO_REFORMAT = """## 🎯 What You're Mastering
+This section covers the Laws of Thermodynamics — the principles governing every energy transformation in the universe, from car engines to the human body.
 
-## 📖 The Concept
-Think of it like a recipe — before you can cook, you need to understand each ingredient.
+## 📖 The Core Ideas
 
-**Core idea**: Every complex system is built from simpler, well-defined building blocks. Understanding those blocks lets you reason about anything.
+**First Law — Energy is always conserved:**
+Think of your phone battery. Charging converts electrical energy to chemical energy. Using it converts chemical energy to heat and light. The total never disappears — it only changes form.
 
-The formal version introduces notation and definitions that make communication precise.
+> **ΔU = Q − W** → Change in internal energy = Heat added to system − Work done BY the system
 
-## 💡 Example
-Imagine sorting a deck of cards. You could:
-1. Pick up all cards and arrange them at once (unrealistic)
-2. Pick one card at a time and insert it in the right place — this is **insertion sort**, and it mirrors how humans naturally sort
+**Second Law — Disorder always increases:**
+Drop an ice cube into warm water. The ice melts, the water cools slightly, and the temperature evens out. This process never runs backwards spontaneously — that directionality is entropy.
+
+> **ΔS ≥ Q / T** → Entropy change is always ≥ heat transferred divided by absolute temperature
+
+## 💡 Real-World Analogy
+A car engine is a heat engine: it absorbs heat from burning fuel (hot reservoir), converts *some* of it to mechanical work (moves the car), and dumps the rest as exhaust (cold reservoir). The Second Law guarantees no engine can convert 100% of heat to work — the Carnot limit sets the ceiling.
 
 ## 🔗 The Big Picture
-These concepts appear everywhere — from database indexing to how your GPS finds the fastest route. Mastering them unlocks patterns you'll recognize across all of computer science.
+These two laws explain why perpetual motion machines are physically impossible, why the universe trends toward disorder, and why all real processes are irreversible. They define the hard limits of every energy technology ever built.
 
 ## 🧠 Key Takeaways
-📌 Break complex problems into smaller, solved sub-problems
-📌 Understand the *why* behind each concept, not just the *what*
-📌 Real-world performance depends on choosing the right approach for the data
-📌 Practice is the only way to build intuition — reading is not enough
-📌 When stuck, draw a picture — visual models make abstract ideas concrete
+📌 **First Law**: Energy is conserved — ΔU = Q − W is the master equation
+📌 **Second Law**: Entropy of an isolated system never decreases — disorder always wins
+📌 Carnot efficiency = 1 − T_cold / T_hot — the theoretical maximum for any heat engine
+📌 Always use **Kelvin** (not Celsius) in thermodynamic calculations
+📌 Heat flows spontaneously from **hot → cold**, never the reverse
 
-## ▶ Formulas
-▶ T(n) = O(n log n) → Time complexity grows as n-log-n — efficient for large inputs
-▶ S(n) = O(n) → Space complexity grows linearly with input size
+## ▶ Core Equations
+▶ **ΔU = Q − W** — First Law: internal energy change equals heat in minus work out
+▶ **η_Carnot = 1 − T_cold / T_hot** — Maximum efficiency of any heat engine (temperatures in Kelvin)
+▶ **ΔS = Q_rev / T** — Entropy change for a reversible process at temperature T
 
 ```mermaid
 flowchart TD
-    A[Start with raw content] --> B[Identify core concept]
-    B --> C[Find a real-world analogy]
-    C --> D[Build intuition step by step]
-    D --> E[Connect to bigger picture]
-    E --> F[Consolidate with key takeaways]
+    A[Heat input Q from hot reservoir] --> B[Heat Engine]
+    B --> C[Useful work W output]
+    B --> D[Waste heat to cold reservoir]
+    E["Carnot limit: η = 1 − T_cold/T_hot"] -. upper bound .-> B
 ```
 """
 
-_DEMO_CHEATSHEET = """## 📋 Overview
-This material covers the fundamental concepts that form the backbone of the subject. Understanding these will unlock your ability to reason about advanced topics with confidence.
+_DEMO_CHEATSHEET = """## 📋 Thermodynamics — Study Reference
 
 ## 🔑 Key Terms
-- **Algorithm**: A step-by-step procedure for solving a problem in finite time
-- **Data Structure**: A way of organizing data to enable efficient operations
-- **Complexity**: How resource usage (time/memory) grows with input size
-- **Recursion**: A function that calls itself with a smaller version of the problem
-- **Abstraction**: Hiding implementation details behind a clean interface
+- **System**: The defined region being studied (e.g., gas inside a piston)
+- **Internal Energy (U)**: Total kinetic + potential energy of all particles in the system
+- **Entropy (S)**: Measure of disorder — the number of microstates corresponding to a macrostate
+- **Heat (Q)**: Energy transferred due to a temperature difference (positive = into the system)
+- **Work (W)**: Energy transferred by mechanical means (positive = done BY the system)
+- **Adiabatic**: No heat exchange — Q = 0 (e.g., rapid compression)
+- **Isothermal**: Constant temperature — ΔT = 0 (e.g., slow expansion in contact with a reservoir)
+- **Isobaric**: Constant pressure — ΔP = 0 (e.g., heating a gas in an open container)
+- **Isochoric**: Constant volume — ΔV = 0, so W = 0 (e.g., heating a rigid container)
 
-## 📚 Core Concepts
-1. **Divide and Conquer** — Split a problem into smaller sub-problems, solve each, combine results. Used in merge sort, quicksort, binary search.
-2. **Dynamic Programming** — Cache solutions to overlapping sub-problems to avoid redundant computation. Memoization vs tabulation.
-3. **Graph Traversal** — BFS explores layer by layer (shortest path); DFS explores as deep as possible (cycle detection, topological sort).
-4. **Greedy Algorithms** — Make the locally optimal choice at each step. Works when local choices lead to global optima (Dijkstra, Huffman coding).
-5. **Amortized Analysis** — Some operations are expensive but rare; average cost over a sequence is low (e.g., dynamic array resize).
-
-## ▶ Formulas & Rules
-- O(1) < O(log n) < O(n) < O(n log n) < O(n²) < O(2ⁿ) — complexity hierarchy
-- Master Theorem: T(n) = aT(n/b) + f(n) — recurrence solution
-- Space-time tradeoff: more memory often buys faster runtime
+## 📐 Essential Formulas
+| Formula | What It Means |
+|---|---|
+| ΔU = Q − W | First Law — energy conservation |
+| ΔS = Q_rev / T | Entropy change for a reversible process |
+| η = 1 − T_cold / T_hot | Carnot (maximum possible) efficiency |
+| Q/t = kA(ΔT/Δx) | Fourier's Law — conductive heat transfer rate |
 
 ## ⚡ Quick-Fire Facts
-- Linked lists have O(1) insert at head but O(n) search
-- Hash tables give O(1) average lookup; worst case O(n) with bad hash
-- Binary search requires sorted input; gives O(log n) search
-- Stacks are LIFO; Queues are FIFO
-- Trees with n nodes have n-1 edges
-- A complete binary tree of height h has 2^(h+1)-1 nodes
-- Dijkstra fails on negative edges; use Bellman-Ford instead
-- DFS uses a stack (call stack in recursion); BFS uses a queue
-- In-order traversal of a BST gives sorted output
-- Merge sort is stable; quicksort is not (in standard form)
+- Heat flows spontaneously **hot → cold**, never the reverse
+- 0 K = −273.15 °C — absolute zero, the minimum possible temperature
+- A Carnot engine between 300 K and 600 K has maximum efficiency = **50%**
+- Entropy of the universe is always increasing — this defines the **arrow of time**
+- In an adiabatic compression: no heat escapes, so all work input becomes internal energy → temperature rises
+- For an ideal gas isothermal process: ΔU = 0, so Q = W (all heat in becomes work out)
 
-## 🧠 Common Mistakes to Avoid
-- Confusing worst-case and average-case complexity
-- Forgetting base cases in recursive solutions (stack overflow)
-- Assuming O(n log n) is always better than O(n²) — constants matter for small n
-- Off-by-one errors in binary search boundary conditions
-- Modifying a list while iterating over it
+## 🧠 Common Mistakes
+- Using Celsius instead of Kelvin in efficiency or entropy formulas (always convert to K)
+- Confusing heat Q (energy transfer) with temperature T (a state property)
+- Forgetting the sign convention: W is work done **by** the system (expansion is positive)
+- Assuming an irreversible real process can reach Carnot efficiency
+- Mixing up isothermal (ΔT = 0) and adiabatic (Q = 0) — they are different constraints
 """
 
 _DEMO_QUIZ = [
     {
-        "question": "What is the time complexity of binary search on a sorted array of n elements?",
-        "options": ["A) O(n)", "B) O(log n)", "C) O(n log n)", "D) O(1)"],
-        "correct_answer": "B",
-        "explanation": "Binary search halves the search space at each step, giving O(log n). O(n) would be linear search, which doesn't exploit the sorted order.",
+        "question": "What does the First Law of Thermodynamics state?",
+        "options": [
+            "A) Energy cannot be created or destroyed, only converted between forms",
+            "B) Entropy of an isolated system always increases over time",
+            "C) Heat spontaneously flows from cold objects to hot objects",
+            "D) The efficiency of any heat engine equals 1 − T_cold / T_hot",
+        ],
+        "correct_answer": "A",
+        "explanation": "The First Law is conservation of energy: ΔU = Q − W. Energy changes form but is never created or destroyed. Option B is the Second Law; option D is the Carnot efficiency formula.",
         "difficulty": "recall",
     },
     {
-        "question": "Which data structure uses LIFO (Last In, First Out) ordering?",
-        "options": ["A) Queue", "B) Heap", "C) Stack", "D) Linked List"],
-        "correct_answer": "C",
-        "explanation": "A stack follows LIFO — the last element pushed is the first popped. Queues use FIFO. This is why the call stack in recursion unwinds in reverse order.",
+        "question": "In the equation ΔU = Q − W, what does the term W represent?",
+        "options": [
+            "A) The weight of the thermodynamic system",
+            "B) Work done BY the system on its surroundings",
+            "C) The wavelength of thermal radiation emitted",
+            "D) Work done ON the system by its surroundings",
+        ],
+        "correct_answer": "B",
+        "explanation": "W is the work done BY the system. When a gas expands and pushes a piston, it does positive work on the surroundings, decreasing its internal energy. Work done ON the system would be −W in this convention.",
         "difficulty": "recall",
     },
     {
-        "question": "Why does dynamic programming improve over naive recursion?",
-        "options": [
-            "A) It uses less stack space by being iterative",
-            "B) It avoids recomputing overlapping sub-problems by caching results",
-            "C) It always finds a globally optimal solution",
-            "D) It reduces the number of function calls by using greedy choices",
-        ],
-        "correct_answer": "B",
-        "explanation": "DP's key insight is memoization — store the result of each sub-problem so it's computed only once. This converts exponential-time recursion to polynomial time for problems with overlapping sub-problems.",
-        "difficulty": "comprehension",
-    },
-    {
-        "question": "A graph has 7 nodes and 6 edges. Which of the following must be true?",
-        "options": [
-            "A) The graph contains a cycle",
-            "B) The graph is a tree if it is connected",
-            "C) Every node has degree at least 2",
-            "D) The graph is bipartite",
-        ],
-        "correct_answer": "B",
-        "explanation": "A connected graph with n nodes and exactly n-1 edges is a tree (no cycles). If the graph is connected and has exactly n-1 edges, it satisfies both tree properties.",
-        "difficulty": "comprehension",
-    },
-    {
-        "question": "You need to process tasks in the order they arrive, with no priority. Which data structure is most appropriate?",
-        "options": ["A) Min-heap", "B) Stack", "C) Queue", "D) Binary search tree"],
+        "question": "A Carnot engine operates between a hot reservoir at 600 K and a cold reservoir at 300 K. What is its maximum theoretical efficiency?",
+        "options": ["A) 25%", "B) 33%", "C) 50%", "D) 100%"],
         "correct_answer": "C",
-        "explanation": "A queue implements FIFO — tasks are processed in arrival order. A stack would reverse the order (LIFO). A heap would introduce priority ordering. This is the classic use case for queues (e.g., job schedulers, BFS).",
+        "explanation": "Carnot efficiency η = 1 − T_cold / T_hot = 1 − 300/600 = 0.50 = 50%. Both temperatures must be in Kelvin. No real engine can exceed this limit — the Second Law forbids it.",
         "difficulty": "application",
+    },
+    {
+        "question": "Which heat transfer mechanism can operate through a complete vacuum?",
+        "options": ["A) Conduction", "B) Convection", "C) Radiation", "D) Advection"],
+        "correct_answer": "C",
+        "explanation": "Radiation transfers energy via electromagnetic waves and requires no medium — this is how the Sun's energy reaches Earth across the vacuum of space. Conduction and convection both require a material medium.",
+        "difficulty": "recall",
+    },
+    {
+        "question": "What defines an adiabatic thermodynamic process?",
+        "options": [
+            "A) Temperature remains constant throughout",
+            "B) Pressure remains constant throughout",
+            "C) No heat is exchanged with the surroundings — Q = 0",
+            "D) Volume remains constant, so no work is done",
+        ],
+        "correct_answer": "C",
+        "explanation": "Adiabatic means Q = 0. No heat crosses the system boundary. Consequently ΔU = −W: any work done by the system comes entirely from its internal energy, which changes the temperature.",
+        "difficulty": "recall",
     },
 ]
 
 _DEMO_REANCHOR = {
-    "question": "In binary search, what happens to the search space at each step?",
+    "question": "According to the Second Law of Thermodynamics, what happens to the total entropy of an isolated system over time?",
     "options": [
-        "A) It is halved — we discard the half where the target cannot be",
-        "B) It is reduced by one element at a time",
-        "C) It is doubled to explore more options",
-        "D) It stays the same but we mark visited elements",
+        "A) It always increases — disorder grows in every spontaneous process",
+        "B) It remains perfectly constant — energy is conserved",
+        "C) It decreases as the system moves toward equilibrium",
+        "D) It oscillates — entropy increases then decreases cyclically",
     ],
     "correct_answer": "A",
-    "explanation": "Binary search compares the target to the middle element and discards the half where the target cannot exist, halving the search space each step — giving O(log n).",
+    "explanation": "The Second Law states that the entropy of an isolated system never decreases. Spontaneous processes always increase total entropy, which is why heat flows from hot to cold and not the reverse.",
 }
 
 _DEMO_SESSION_PLAN = {
     "sprints": [
         {
-            "title": "Sprint 1: Foundations & Core Concepts",
+            "title": "Sprint 1: First Law & Internal Energy",
             "duration_minutes": 15,
-            "focus": "Understand the fundamental definitions and build intuition with examples",
-            "material_hint": "Start from the beginning of the material",
+            "focus": "Master ΔU = Q − W and the concept of internal energy with worked examples",
+            "material_hint": "Begin with the First Law definition and the energy conservation statement",
         },
         {
-            "title": "Sprint 2: Key Algorithms & Patterns",
+            "title": "Sprint 2: Second Law & Entropy",
             "duration_minutes": 15,
-            "focus": "Trace through the main algorithms step by step, identify patterns",
-            "material_hint": "Focus on the algorithm descriptions and pseudocode",
+            "focus": "Understand entropy, disorder, and why spontaneous processes are irreversible",
+            "material_hint": "Focus on the entropy definition ΔS = Q_rev / T and the arrow of time",
         },
         {
-            "title": "Sprint 3: Complexity & Trade-offs",
+            "title": "Sprint 3: Heat Transfer Mechanisms",
             "duration_minutes": 15,
-            "focus": "Analyse time and space complexity, understand when to use each approach",
-            "material_hint": "Review the complexity tables and comparison sections",
+            "focus": "Distinguish conduction, convection, and radiation with their governing equations",
+            "material_hint": "Study Fourier's law, Newton's law of cooling, and Stefan-Boltzmann law",
         },
         {
-            "title": "Sprint 4: Applications & Practice",
+            "title": "Sprint 4: Carnot Cycle & Heat Engine Efficiency",
             "duration_minutes": 15,
-            "focus": "Apply concepts to practice problems and real-world scenarios",
-            "material_hint": "Work through examples and exercises at the end",
+            "focus": "Apply the Carnot efficiency formula and understand why no real engine can exceed it",
+            "material_hint": "Work through the Carnot cycle diagram and the efficiency derivation",
         },
         {
-            "title": "Sprint 5: Review & Synthesis",
+            "title": "Sprint 5: Thermodynamic Processes",
             "duration_minutes": 15,
-            "focus": "Connect all ideas, fill gaps, review anything unclear from earlier sprints",
-            "material_hint": "Go back to any sections that felt unclear",
+            "focus": "Identify isothermal, adiabatic, isobaric, and isochoric processes and their constraints",
+            "material_hint": "Compare each process type using the P-V diagram",
         },
         {
-            "title": "Sprint 6: Self-Test",
+            "title": "Sprint 6: Review & Self-Test",
             "duration_minutes": 15,
-            "focus": "Quiz yourself on key concepts without looking at the material",
-            "material_hint": "Use the key takeaways as a checklist",
+            "focus": "Connect all concepts, solve practice problems, identify remaining gaps",
+            "material_hint": "Use the cheatsheet formulas as a checklist — can you derive each one?",
         },
     ],
     "total_sprints": 6,
 }
 
 _DEMO_TUTOR_RESPONSES = [
-    "Great question! The key insight here is that we're trading memory for speed — by caching intermediate results, we avoid repeating work we've already done. Think of it like writing down your work on a math test rather than recalculating the same step twice.",
-    "Exactly right! You're thinking about it correctly. The base case is crucial — without it, the recursion never terminates. Always ask: 'What is the simplest version of this problem I can answer directly?'",
-    "The difference between BFS and DFS comes down to the data structure used internally. BFS uses a queue (FIFO) so it explores neighbours before going deeper. DFS uses a stack (or the call stack via recursion) so it dives deep before backtracking.",
-    "Don't worry — this trips everyone up at first! The trick is to think about *invariants*: what property is always true at each step of the algorithm? Once you identify the invariant, the correctness proof becomes much clearer.",
-    "You're on the right track. Remember: O(n log n) doesn't always mean 'better'. For small inputs (n < 20), even O(n²) algorithms can be faster in practice because of lower constant factors and cache behaviour.",
+    "Great question! The key distinction is the sign convention for W. In the physics convention used here (ΔU = Q − W), W is work done BY the system. When a gas expands and pushes a piston outward, it does positive work, which reduces its internal energy. If you see ΔU = Q + W in other textbooks, W there means work done ON the system — opposite sign, same physics.",
+    "You're thinking about it correctly! Entropy isn't just a formula — it's a measure of how many microscopic arrangements are possible for a given macroscopic state. A cold, ordered crystal has very few arrangements (low entropy). A hot gas has an enormous number of possible particle positions and velocities (high entropy). The Second Law says the universe always moves toward states with more arrangements available.",
+    "The Carnot efficiency η = 1 − T_cold/T_hot is the absolute ceiling for any heat engine. The key insight is that you can never extract ALL the heat as work — some must always be dumped to the cold reservoir. The only way to reach 100% efficiency would be T_cold = 0 K (absolute zero), which is impossible to achieve in practice (Third Law of Thermodynamics).",
+    "Don't worry — isothermal and adiabatic trip everyone up. Here's the anchor: **iso**thermal = same **T**emperature (ΔT = 0, so for an ideal gas ΔU = 0, meaning all heat in becomes work out). **Adi**abatic = **no heat** crosses the boundary (Q = 0, so all work changes internal energy, which changes temperature). They're opposite constraints.",
+    "For the entropy calculation: always check whether the process is reversible or irreversible. For a reversible process, ΔS = Q_rev / T. For an irreversible process (which all real processes are), ΔS > Q / T — the system generates extra entropy internally. The total entropy of the universe (system + surroundings) still increases.",
 ]
 
-_DEMO_REEXPLAIN = """Let me try this from a completely different angle.
+_DEMO_REEXPLAIN = """Let me approach this from a completely different angle.
 
-**Think of it like GPS navigation:**
-Your GPS doesn't calculate every possible route — that would take forever. Instead, it uses smart shortcuts:
+**Think of entropy like a messy room:**
 
-1. **Divide the map into zones** — only look at roads near your current location first
-2. **Keep a list of "promising" paths** — update it as you discover shorter options
-3. **Stop early** — the moment you reach your destination, you're done
-4. **Remember dead ends** — don't explore the same road twice
+Imagine your room has one specific "tidy" arrangement — everything in exactly the right place. But there are *millions* of "messy" arrangements — clothes on the floor, books scattered, cups everywhere.
 
-That's essentially what efficient algorithms do with data. The "smart shortcut" changes depending on the problem, but the principle is the same: **avoid unnecessary work**.
+If you randomly rearrange things (close your eyes and move stuff around), you're overwhelmingly likely to end up in *some* messy state rather than the one tidy state.
 
-**The one thing to remember: Every algorithm is just a strategy for avoiding unnecessary work — the cleverness is in knowing what to skip.**
+That's entropy in physics:
+1. **Low entropy** = very few possible arrangements (ice crystal, ordered)
+2. **High entropy** = enormous number of possible arrangements (steam, disordered)
+3. **Why entropy increases** = there are simply far more disordered states than ordered ones — random processes statistically end up there
+
+**Applied to heat flow:**
+When you put a hot object next to a cold one, the fast-moving (hot) molecules and slow-moving (cold) molecules mix. The mixed state has vastly more possible arrangements than "all fast ones here, all slow ones there." So mixing is overwhelmingly probable.
+
+**The one thing to remember: Entropy increases not because of any force — but because disordered states vastly outnumber ordered ones.**
 """
 
 _DEMO_RETENTION = {
-    "overall_retention": 78.5,
-    "strong_areas": ["Core definitions", "Algorithm mechanics", "Time complexity basics"],
-    "weak_areas": ["Space complexity trade-offs", "Edge cases in recursion"],
-    "summary": "Strong performance on foundational concepts with room to deepen understanding of advanced trade-offs.",
-    "recommendation": "Review space complexity and practice tracing recursive calls on paper before the next session.",
+    "overall_retention": 72.0,
+    "strong_areas": ["First Law (ΔU = Q − W)", "Heat transfer mechanisms", "Carnot cycle concept"],
+    "weak_areas": ["Entropy calculations for irreversible processes", "Distinguishing isothermal vs adiabatic"],
+    "summary": "Solid grasp of energy conservation and heat engine principles. Entropy and process classification need consolidation.",
+    "recommendation": "Practice computing entropy changes for both reversible and irreversible processes. Draw P-V diagrams for each process type to build visual intuition before the next session.",
 }
 
 _DEMO_PROFILE_ANALYSIS = {
-    "best_focus_time_of_day": "morning",
-    "preferred_content_format": "pdf",
-    "weak_topics": ["space complexity", "graph algorithms", "dynamic programming edge cases"],
-    "insights": "Consistent performance on recall questions; comprehension and application questions show the most growth potential.",
+    "best_focus_time_of_day": "evening",
+    "preferred_content_format": "text",
+    "weak_topics": ["entropy and irreversibility", "thermodynamic process classification", "Carnot efficiency calculations"],
+    "insights": "Strong recall on definitions and First Law mechanics. Second Law and entropy concepts show the most variability — these are the highest-leverage areas for focused review before an exam.",
 }
 
 

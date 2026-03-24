@@ -12,7 +12,7 @@ import { getActiveSession } from './api/sessions'
 import { useStudyReminder } from './hooks/useStudyReminder'
 
 export default function App() {
-  const { studentId, setStudentName, currentSession, setSession, setPlan, reminderTime } = useStore()
+  const { studentId, setStudentName, currentSession, currentSprint, setSession, setPlan, reminderTime } = useStore()
   useStudyReminder(reminderTime)
 
   useEffect(() => {
@@ -34,9 +34,10 @@ export default function App() {
     return () => { cancelled = true }
   }, [studentId])
 
-  // Restore active session from DB on fresh load (no state in localStorage yet)
+  // Restore active session from DB on fresh load, or when session exists but sprint hasn't started
+  // (e.g. page refreshed before first sprint began — sessionStorage cleared but localStorage has the session)
   useEffect(() => {
-    if (currentSession !== null) return
+    if (currentSession !== null && currentSprint !== null) return
     let cancelled = false
     async function restoreSession() {
       try {

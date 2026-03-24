@@ -138,9 +138,10 @@ export const useStore = create<Store>()(
         studentName: state.studentName,
         lastEnergyLevel: state.lastEnergyLevel,
         // Persist active session so page refresh doesn't lose state
+        // currentChunk is intentionally excluded — always re-fetched from the API
+        // so stale cached content never blocks the session page.
         currentSession: state.currentSession,
         currentSprint: state.currentSprint,
-        currentChunk: state.currentChunk,
         plan: state.plan,
         isSessionActive: state.isSessionActive,
         // Cap tutor history at 50 messages to prevent storage bloat

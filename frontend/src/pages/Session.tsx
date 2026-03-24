@@ -5,7 +5,7 @@ import mermaid from 'mermaid'
 import { useNavigate } from 'react-router-dom'
 import {
   Send, ChevronRight, Loader2, CheckCircle, XCircle, ArrowRight, Compass, Zap, Clock,
-  BookOpen, X, Volume2, VolumeX, RefreshCw, HelpCircle, Battery, BatteryMedium, BatteryLow,
+  BookOpen, X, Volume2, VolumeX, RefreshCw, HelpCircle, Battery, BatteryMedium, BatteryLow, AlertCircle,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 import clsx from 'clsx'
@@ -1311,6 +1311,8 @@ export default function Session() {
   const [showQuiz, setShowQuiz] = useState(false)
   const [currentQuizData, setCurrentQuizData] = useState<GenerateQuizResponse | null>(null)
   const [quizLoading, setQuizLoading] = useState(false)
+  const [sprintStartFailed, setSprintStartFailed] = useState(false)
+  const pendingSprintIdRef = useRef<string | null>(null)
 
   const [view, setView] = useState<SessionView>('active')
   const [closeResult, setCloseResult] = useState<CloseSessionResponse | null>(null)
@@ -1370,8 +1372,11 @@ export default function Session() {
         setShowEnergyCheck(true)
         handleStartSprint(storedSprintId)
       }
+    } else if (currentSession && currentSprint && !currentChunk) {
+      // Sprint persisted in localStorage but chunk was lost — re-fetch it
+      handleStartSprint(currentSprint.id)
     }
-  }, [currentSession, currentSprint])
+  }, [currentSession?.id, currentSprint?.id, currentChunk?.index])
 
   useEffect(() => {
     if (!currentSprint) return
@@ -1433,6 +1438,8 @@ export default function Session() {
 
   async function handleStartSprint(sprintId: string) {
     if (!currentSession) return
+    pendingSprintIdRef.current = sprintId
+    setSprintStartFailed(false)
     try {
       const result = await startSprint(currentSession.id, sprintId)
       const sprint: Sprint = {
@@ -1451,6 +1458,7 @@ export default function Session() {
       // Show pre-reading prime overlay
       setShowPrimingOverlay(true)
     } catch {
+      setSprintStartFailed(true)
       setError('Could not start sprint. Please try again.')
     }
   }
@@ -1963,6 +1971,30 @@ export default function Session() {
                   </motion.button>
                 )}
               </AnimatePresence>
+            </div>
+          ) : sprintStartFailed ? (
+            <div className="max-w-[640px] mx-auto flex flex-col items-center justify-center gap-5 py-16 text-center">
+              <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ backgroundColor: 'rgba(232,232,112,0.08)', border: '1px solid rgba(232,232,112,0.2)' }}>
+                <AlertCircle size={22} style={{ color: '#E8E870' }} />
+              </div>
+              <div>
+                <p className="text-white font-semibold mb-1">Couldn't load sprint content</p>
+                <p className="text-zinc-500 text-sm">The backend may be starting up. Try again or go back.</p>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => pendingSprintIdRef.current && handleStartSprint(pendingSprintIdRef.current)}
+                  className="btn-mint px-5 py-2.5 text-sm font-semibold"
+                >
+                  Retry
+                </button>
+                <button
+                  onClick={() => navigate('/')}
+                  className="px-5 py-2.5 rounded-full border border-white/10 text-zinc-400 hover:text-white text-sm transition-colors"
+                >
+                  Back to Home
+                </button>
+              </div>
             </div>
           ) : (
             <div className="max-w-2xl animate-pulse space-y-4 pt-2">

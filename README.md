@@ -285,7 +285,7 @@ npm run preview
 
 ## 6. Testing Guide for Judges
 
-The pre-seeded database contains a demo student with two study materials, a completed session with quiz history, and an active session ready to resume. No AWS credentials are needed.
+The pre-seeded database contains a demo student with two study materials, four completed sessions with improving quiz scores, two items due for spaced repetition review, and an active session ready to resume. No AWS credentials are needed.
 
 ### Reset to a clean demo state
 
@@ -293,11 +293,14 @@ If the database has been modified from previous runs:
 
 ```bash
 cd backend
-# Stop the server first, then:
-python seed.py          # skips if demo data already exists
-# To force a full reset:
-# del focuspilot.db     (Windows cmd)
-# rm focuspilot.db      (bash/macOS)
+python seed.py           # skips if demo data already exists
+
+# To force a full reset without stopping the server:
+python seed.py --force   # deletes and re-seeds demo data in-place
+
+# Alternative (requires stopping the server first):
+# del focuspilot.db      (Windows cmd)
+# rm focuspilot.db       (bash/macOS)
 # python seed.py
 ```
 
@@ -334,8 +337,9 @@ localStorage.clear(); location.reload();
 - On the overlay click **"Need a break instead?"** → 5-minute break timer starts
 
 **History page**
-- Shows the completed thermodynamics session with a sprint score chart (100% → 67% → 33%)
-- Click any session row to expand details and retry the topic
+- Shows four completed sessions spanning four days, with quiz scores improving from ~67% (first session) to 98% (most recent)
+- The earliest session (100% → 67% → 33%) demonstrates adaptive difficulty triggering and spaced repetition seeding
+- Click any session row to expand the sprint score bar chart and retry the topic
 
 **Profile page**
 - Shows XP level, achievement badges, weak topics bar chart, and coaching recommendation cards
@@ -516,7 +520,7 @@ FocusPilot uses a purpose-built design system tuned for the perceptual and atten
 
 ## 9. Competition Context
 
-FocusPilot was developed as a submission for the **CODE2CURE Technical Challenge 2026**, hosted at **IEEE SIGHT DAY CONGRESS 4.0** by Team ESPRIT.
+FocusPilot was developed as a submission for the **CODE2CURE Technical Challenge 2026**, hosted at **IEEE SIGHT DAY CONGRESS 4.0** by Team Zouza.
 
 ### Alignment with UN Sustainable Development Goals
 
@@ -536,7 +540,7 @@ ADHD is estimated to affect **5–8% of the global student population**. Without
 
 MIT License
 
-Copyright © 2026 FocusPilot Team — ESPRIT
+Copyright © 2026 FocusPilot Team — Zouza
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -547,6 +551,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 ---
 
 <div align="center">
-  Built with focus, for focus — by Team ESPRIT<br>
+  Built with focus, for focus — by Team Zouza<br>
   CODE2CURE 2026 · IEEE SIGHT DAY CONGRESS 4.0
 </div>
