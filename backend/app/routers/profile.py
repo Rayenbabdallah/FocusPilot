@@ -5,6 +5,7 @@ from typing import Any, Dict
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+import logging
 
 from app.database import get_db
 from app.models.profile import LearningProfileRead
@@ -12,6 +13,7 @@ from app.models.student import Student
 from app.services.profile_service import get_or_create_profile, get_profile_stats
 
 router = APIRouter(prefix="/api/profile", tags=["profile"])
+logger = logging.getLogger(__name__)
 
 DEFAULT_STUDENT_ID = "00000000-0000-0000-0000-000000000001"
 
@@ -39,11 +41,9 @@ async def get_profile(
         profile = await get_or_create_profile(db, student_id)
         await db.commit()
         stats = await get_profile_stats(db, student_id)
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail={"error": str(e), "context": "Failed to load profile"},
-        )
+    except Exception:
+        logger.exception("Failed to load profile for student_id=%s", student_id)
+        raise HTTPException(status_code=500, detail="Failed to load profile")
 
     profile_data = LearningProfileRead.from_orm_parsed(profile).model_dump()
     profile_data["stats"] = stats

@@ -1,9 +1,13 @@
 from __future__ import annotations
 
 from functools import lru_cache
+from pathlib import Path
 from typing import Optional
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings
+
+BACKEND_ROOT = Path(__file__).resolve().parents[1]
 
 
 class Settings(BaseSettings):
@@ -18,7 +22,24 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:5173"
     demo_mode: bool = False
 
-    model_config = {"env_file": ".env", "extra": "ignore"}
+    model_config = {"env_file": str(BACKEND_ROOT / ".env"), "extra": "ignore"}
+
+    @field_validator("database_url")
+    @classmethod
+    def normalize_database_url(cls, value: str) -> str:
+        prefix = "sqlite+aiosqlite:///"
+        if value.startswith(prefix + "./"):
+            relative = value[len(prefix):]  # "./focuspilot.db"
+            absolute = (BACKEND_ROOT / relative[2:]).resolve()
+            return f"{prefix}{absolute.as_posix()}"
+        return value
+
+    @field_validator("upload_dir")
+    @classmethod
+    def normalize_upload_dir(cls, value: str) -> str:
+        if value.startswith("./"):
+            return str((BACKEND_ROOT / value[2:]).resolve())
+        return value
 
 
 @lru_cache()

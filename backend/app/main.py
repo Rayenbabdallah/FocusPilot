@@ -23,6 +23,7 @@ logger = logging.getLogger("focuspilot")
 async def lifespan(app: FastAPI):
     await create_all_tables()
     await _migrate_add_columns()
+    await _migrate_repair_generic_chunks()
     from app.config import get_settings
     settings = get_settings()
     os.makedirs(settings.upload_dir, exist_ok=True)
@@ -80,8 +81,66 @@ async def _migrate_add_columns() -> None:
         for stmt in migrations:
             try:
                 await conn.execute(text(stmt))
-            except Exception:
-                pass  # Column already exists — safe to ignore
+            except Exception as e:
+                # SQLite duplicate-column errors are expected on repeat startup.
+                if "duplicate column name" in str(e).lower():
+                    continue
+                raise
+
+
+async def _migrate_repair_generic_chunks() -> None:
+    """
+    Repair legacy generic AI template output stored in DB chunks by restoring
+    each chunk's original_text when available.
+    """
+    from app.database import AsyncSessionLocal
+    from app.models.material import Material
+    from app.models.session import Sprint
+    from app.services.session_engine import _is_generic_template_text
+
+    repaired_materials = 0
+    repaired_sprints = 0
+
+    async with AsyncSessionLocal() as db:
+        mats = (await db.execute(select(Material))).scalars().all()
+        for mat in mats:
+            chunks = mat.get_chunks()
+            if not isinstance(chunks, list) or not chunks:
+                continue
+            touched = False
+            for chunk in chunks:
+                if not isinstance(chunk, dict):
+                    continue
+                text = str(chunk.get("text", "") or "")
+                original = str(chunk.get("original_text", "") or "")
+                if original and _is_generic_template_text(text):
+                    chunk["text"] = original
+                    chunk["word_count"] = len(original.split())
+                    touched = True
+            if touched:
+                mat.set_chunks(chunks)
+                repaired_materials += 1
+
+        sprints = (await db.execute(select(Sprint))).scalars().all()
+        for sprint in sprints:
+            chunk = sprint.get_content_chunk()
+            if not isinstance(chunk, dict):
+                continue
+            text = str(chunk.get("text", "") or "")
+            original = str(chunk.get("original_text", "") or "")
+            if original and _is_generic_template_text(text):
+                chunk["text"] = original
+                chunk["word_count"] = len(original.split())
+                sprint.set_content_chunk(chunk)
+                repaired_sprints += 1
+
+        if repaired_materials or repaired_sprints:
+            await db.commit()
+            logger.info(
+                "Repaired legacy generic chunks: materials=%s sprints=%s",
+                repaired_materials,
+                repaired_sprints,
+            )
 
 
 # ─── Health ────────────────────────────────────────────────────────────────────

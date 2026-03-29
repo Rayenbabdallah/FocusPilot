@@ -3,10 +3,12 @@ import type { GenerateQuizResponse, GradeQuizResponse, ReviewQueueResponse } fro
 
 export async function generateQuiz(
   sprintId: string,
+  studentId: string,
   sessionId: string,
   contentChunkText: string
 ): Promise<GenerateQuizResponse> {
   const response = await client.post<GenerateQuizResponse>(`/quiz/generate/${sprintId}`, {
+    student_id: studentId,
     session_id: sessionId,
     content_chunk_text: contentChunkText,
   })
@@ -15,9 +17,13 @@ export async function generateQuiz(
 
 export async function submitQuiz(
   quizId: string,
+  studentId: string,
   answers: string[]
 ): Promise<GradeQuizResponse> {
-  const response = await client.post<GradeQuizResponse>(`/quiz/${quizId}/submit`, { answers })
+  const response = await client.post<GradeQuizResponse>(`/quiz/${quizId}/submit`, {
+    student_id: studentId,
+    answers,
+  })
   return response.data
 }
 
@@ -28,11 +34,12 @@ export async function getReviewQueue(studentId: string): Promise<ReviewQueueResp
 
 export async function submitReviewResult(
   itemId: string,
+  studentId: string,
   wasCorrect: boolean
 ): Promise<{ next_review_at: string; message: string }> {
   const response = await client.post<{ next_review_at: string; message: string }>(
     `/quiz/review/${itemId}/result`,
-    { was_correct: wasCorrect }
+    { student_id: studentId, was_correct: wasCorrect }
   )
   return response.data
 }

@@ -27,6 +27,8 @@
 10. [Competition Context](#10-competition-context)
 11. [License](#11-license)
 
+
+
 ---
 
 ## 1. The Problem
@@ -173,7 +175,7 @@ Standard tools expect students to self-impose structure, manage time, initiate t
 │          │                                             │           │
 │   ┌──────▼───────┐                         ┌──────────▼────────┐  │
 │   │   SQLite DB  │                         │   AWS Bedrock     │  │
-│   │  (aiosqlite) │                         │   (Claude LLM)    │  │
+│   │  (aiosqlite) │                         │                │  │
 │   │              │                         │                   │  │
 │   │  sessions    │                         │ Content chunking  │  │
 │   │  materials   │                         │ Quiz generation   │  │
@@ -213,7 +215,7 @@ Standard tools expect students to self-impose structure, manage time, initiate t
 | **Database** | SQLite + aiosqlite |
 | **Validation** | Pydantic 2.7 |
 | **PDF Processing** | PyMuPDF + PyPDF2 |
-| **AI / LLM** | AWS Bedrock (Claude) |
+| **AI / LLM** | AWS Bedrock (Amazon Nova Pro / Lite / Micro) |
 | **File I/O** | aiofiles |
 
 ---
@@ -435,7 +437,7 @@ FocusPilot/
 
 ---
 
-## 7. ADHD Design System
+## 8. ADHD Design System
 
 FocusPilot uses a purpose-built design system tuned for the perceptual and attentional profile of ADHD users: high contrast without harshness, distinct semantic colors, and motion that signals — not distracts.
 
@@ -470,55 +472,53 @@ FocusPilot uses a purpose-built design system tuned for the perceptual and atten
 
 ---
 
-## 8. API Reference
+## 9. API Reference
 
-### Sessions
+All endpoints are prefixed with the base URL (e.g. `http://localhost:8000`). Interactive docs available at `/docs`.
 
-| Method | Endpoint | Description |
-|---|---|---|
-| `GET` | `/sessions` | List all sessions for the current user, paginated |
-| `POST` | `/sessions` | Create a new session with material ID and duration |
-| `GET` | `/sessions/{id}` | Retrieve a single session with full sprint plan |
-| `PATCH` | `/sessions/{id}` | Update session state (progress, focus events, status) |
-| `DELETE` | `/sessions/{id}` | Remove a session record |
-| `POST` | `/sessions/{id}/resume` | Generate a resume card for a previous session |
-| `GET` | `/sessions/{id}/cheatsheet` | Fetch or generate the AI cheatsheet for a session |
-| `POST` | `/sessions/{id}/chat` | Send a message to the in-session AI tutor |
-| `GET` | `/sessions/{id}/chat` | Retrieve persisted chat history (last 50 messages) |
-
-### Materials
+### Sessions (`/api/sessions`)
 
 | Method | Endpoint | Description |
 |---|---|---|
-| `POST` | `/materials/upload` | Upload a PDF file; triggers async ingestion and chunking |
-| `POST` | `/materials/text` | Submit raw text for chunking and sprint planning |
-| `GET` | `/materials` | List all uploaded materials |
-| `GET` | `/materials/{id}` | Retrieve material metadata and chunk index |
-| `DELETE` | `/materials/{id}` | Remove a material and its associated chunks |
+| `POST` | `/api/sessions/start` | Start a new session — returns `{session_id, plan, first_sprint_id, first_chunk}` |
+| `GET` | `/api/sessions/active/{student_id}` | Get the current active session for a student |
+| `GET` | `/api/sessions/history/{student_id}` | Session history with per-sprint scores |
+| `POST` | `/api/sessions/{session_id}/sprint/{sprint_id}/start` | Activate a sprint and receive its content chunk |
+| `POST` | `/api/sessions/{session_id}/sprint/{sprint_id}/complete` | Mark sprint done, get retention snapshot and next sprint ID |
+| `POST` | `/api/sessions/{session_id}/drift` | Log a drift event; returns an AI re-anchor question |
+| `POST` | `/api/sessions/{session_id}/tutor` | Send a message to the context-aware AI tutor |
+| `POST` | `/api/sessions/{session_id}/reexplain` | Re-explain the current chunk from a different angle |
+| `POST` | `/api/sessions/{session_id}/close` | Complete session and receive final stats + streak |
 
-### Quiz & Review
-
-| Method | Endpoint | Description |
-|---|---|---|
-| `GET` | `/quiz/generate/{session_id}/{sprint_index}` | Generate 3 MCQs for a given sprint |
-| `POST` | `/quiz/submit` | Submit quiz answers; returns score + SM-2 updates |
-| `GET` | `/quiz/review/queue` | Get today's spaced repetition review queue |
-| `POST` | `/quiz/review/submit` | Submit review answers and update SM-2 intervals |
-| `GET` | `/quiz/history/{session_id}` | Retrieve all quiz attempts for a session |
-
-### Profile
+### Materials (`/api/materials`)
 
 | Method | Endpoint | Description |
 |---|---|---|
-| `GET` | `/profile` | Retrieve user profile: XP, level, badges, settings |
-| `PATCH` | `/profile` | Update profile settings (notification time, energy default) |
-| `GET` | `/profile/analytics` | Aggregated analytics: focus trend, weak topics, session history |
-| `GET` | `/profile/coaching` | Fetch up to 4 AI-generated coaching recommendation cards |
-| `GET` | `/profile/best-window` | Compute and return the user's best historical study window |
+| `POST` | `/api/materials/upload` | Upload PDF/text; AI extracts, chunks, and reformats for ADHD |
+| `GET` | `/api/materials/{student_id}` | List all materials for a student |
+| `GET` | `/api/materials/{material_id}/chunks` | Return all processed content chunks |
+| `GET` | `/api/materials/{material_id}/cheatsheet` | Get (or generate) the AI cheatsheet for a material |
+| `PATCH` | `/api/materials/{material_id}/subject` | Tag a material with a subject label |
+| `DELETE` | `/api/materials/{material_id}` | Delete material record and file |
+
+### Quiz & Review (`/api/quiz`)
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/api/quiz/generate/{sprint_id}` | Generate 3 MCQs for a sprint's content chunk |
+| `POST` | `/api/quiz/{quiz_id}/submit` | Submit answers; scores quiz and seeds spaced repetition |
+| `GET` | `/api/quiz/review/{student_id}` | Get today's spaced repetition review queue |
+| `POST` | `/api/quiz/review/{item_id}/result` | Submit a review answer and apply SM-2 interval update |
+
+### Profile (`/api/profile`)
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/api/profile/{student_id}` | Full learning profile: XP, level, badges, weak topics, stats, coaching cards |
 
 ---
 
-## 9. Competition Context
+## 10. Competition Context
 
 FocusPilot was developed as a submission for the **CODE2CURE Technical Challenge 2026**, hosted at **IEEE SIGHT DAY CONGRESS 4.0** by Team Zouza.
 
@@ -536,7 +536,7 @@ ADHD is estimated to affect **5–8% of the global student population**. Without
 
 ---
 
-## 10. License
+## 11. License
 
 MIT License
 

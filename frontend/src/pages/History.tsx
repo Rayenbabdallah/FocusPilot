@@ -103,6 +103,7 @@ interface ReviewModalProps {
 
 function ReviewModal({ queue, onClose }: ReviewModalProps) {
   const toast = useToast()
+  const { studentId } = useStore()
   const [idx, setIdx] = useState(0)
   const [selected, setSelected] = useState<string | null>(null)
   const [showFeedback, setShowFeedback] = useState(false)
@@ -120,7 +121,7 @@ function ReviewModal({ queue, onClose }: ReviewModalProps) {
     const wasCorrect = opt.trim().charAt(0).toUpperCase() === current.correct_answer.trim().toUpperCase()
     if (wasCorrect) setCorrect((c) => c + 1)
     try {
-      await submitReviewResult(current.item_id, wasCorrect)
+      await submitReviewResult(current.item_id, studentId, wasCorrect)
     } catch (err) {
       // Score still recorded locally — backend sync failed
       const msg = err instanceof Error ? err.message : 'Could not save review result'

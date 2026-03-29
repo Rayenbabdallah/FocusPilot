@@ -34,10 +34,13 @@ export async function startSession(payload: StartSessionPayload): Promise<Sessio
 
 export async function startSprint(
   sessionId: string,
-  sprintId: string
+  sprintId: string,
+  studentId: string,
 ): Promise<SprintStartResponse> {
   const response = await client.post<SprintStartResponse>(
-    `/sessions/${sessionId}/sprint/${sprintId}/start`
+    `/sessions/${sessionId}/sprint/${sprintId}/start`,
+    null,
+    { params: { student_id: studentId } }
   )
   return response.data
 }
@@ -45,12 +48,13 @@ export async function startSprint(
 export async function completeSprint(
   sessionId: string,
   sprintId: string,
+  studentId: string,
   quizScore: number,
   topicsCovered: string[]
 ): Promise<CompleteSprintResponse> {
   const response = await client.post<CompleteSprintResponse>(
     `/sessions/${sessionId}/sprint/${sprintId}/complete`,
-    { quiz_score: quizScore, topics_covered: topicsCovered }
+    { student_id: studentId, quiz_score: quizScore, topics_covered: topicsCovered }
   )
   return response.data
 }
@@ -58,22 +62,25 @@ export async function completeSprint(
 export async function recordDrift(
   sessionId: string,
   sprintId: string,
+  studentId: string,
   signalType: string
 ): Promise<{ reanchor_question: string }> {
   const response = await client.post<{ reanchor_question: string }>(
     `/sessions/${sessionId}/drift`,
-    { sprint_id: sprintId, signal_type: signalType }
+    { student_id: studentId, sprint_id: sprintId, signal_type: signalType }
   )
   return response.data
 }
 
 export async function askTutor(
   sessionId: string,
+  studentId: string,
   question: string,
   currentContent: string,
   conversationHistory: TutorMessage[]
 ): Promise<{ answer: string }> {
   const response = await client.post<{ answer: string }>(`/sessions/${sessionId}/tutor`, {
+    student_id: studentId,
     question,
     current_content: currentContent,
     conversation_history: conversationHistory,
@@ -81,8 +88,10 @@ export async function askTutor(
   return response.data
 }
 
-export async function closeSession(sessionId: string): Promise<CloseSessionResponse> {
-  const response = await client.post<CloseSessionResponse>(`/sessions/${sessionId}/close`)
+export async function closeSession(sessionId: string, studentId: string): Promise<CloseSessionResponse> {
+  const response = await client.post<CloseSessionResponse>(`/sessions/${sessionId}/close`, null, {
+    params: { student_id: studentId },
+  })
   return response.data
 }
 
@@ -102,11 +111,12 @@ export async function getActiveSession(studentId: string): Promise<ActiveSession
 
 export async function reexplainChunk(
   sessionId: string,
+  studentId: string,
   chunkText: string,
 ): Promise<{ explanation: string }> {
   const response = await client.post<{ explanation: string }>(
     `/sessions/${sessionId}/reexplain`,
-    { chunk_text: chunkText }
+    { student_id: studentId, chunk_text: chunkText }
   )
   return response.data
 }

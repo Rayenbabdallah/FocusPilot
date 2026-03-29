@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from typing import Optional
 
 import boto3
@@ -278,6 +279,67 @@ _DEMO_PROFILE_ANALYSIS = {
 }
 
 
+def _extract_topic_tokens(text: str, limit: int = 5) -> list[str]:
+    words = re.findall(r"[A-Za-z][A-Za-z0-9_-]{3,}", text.lower())
+    stop = {
+        "that", "this", "with", "from", "into", "your", "have", "will", "what",
+        "when", "where", "which", "their", "about", "there", "these", "those",
+        "session", "study", "chapter", "material", "content",
+    }
+    ranked: list[str] = []
+    for w in words:
+        if w in stop:
+            continue
+        if w not in ranked:
+            ranked.append(w)
+        if len(ranked) >= limit:
+            break
+    return ranked
+
+
+def _demo_reformat_from_text(text: str) -> str:
+    tokens = _extract_topic_tokens(text)
+    topic = " / ".join(tokens[:3]) if tokens else "this study topic"
+    clean = " ".join(text.split())
+    preview = clean[:420] + ("..." if len(clean) > 420 else "")
+    key_terms = tokens[:5] or ["main concept", "key definition", "core process"]
+    bullets = "\n".join(f"📌 **{t.title()}**" for t in key_terms[:5])
+
+    return (
+        f"## 🎯 What You're Mastering\n"
+        f"This chunk focuses on **{topic}** and how it connects to your study goal.\n\n"
+        f"## 📖 The Core Ideas\n"
+        f"{preview}\n\n"
+        f"## 💡 How To Read This Chunk\n"
+        f"1. Find definitions first.\n"
+        f"2. Mark one relationship between two ideas.\n"
+        f"3. Write one example in your own words.\n\n"
+        f"## 🔑 Key Takeaways\n"
+        f"{bullets}\n"
+    )
+
+
+def _demo_session_plan_from_context(goal: str, materials_summary: str, available_minutes: int) -> dict:
+    num_sprints = max(1, available_minutes // 15)
+    material_titles = re.findall(r"Material:\s*(.+?)\s*\(", materials_summary)
+    topic_tokens = _extract_topic_tokens(f"{goal} {materials_summary}", limit=8)
+    fallback_focus = goal.strip() or "the selected material"
+
+    sprints: list[dict] = []
+    for i in range(num_sprints):
+        title_hint = material_titles[i % len(material_titles)] if material_titles else f"Section {i + 1}"
+        focus_hint = topic_tokens[i % len(topic_tokens)] if topic_tokens else fallback_focus
+        sprints.append(
+            {
+                "title": f"Sprint {i + 1}: {title_hint}",
+                "duration_minutes": 15,
+                "focus": f"Focus on {focus_hint} and summarize it clearly.",
+                "material_hint": title_hint,
+            }
+        )
+    return {"sprints": sprints, "total_sprints": len(sprints)}
+
+
 class BedrockService:
     def __init__(self):
         settings = get_settings()
@@ -438,7 +500,7 @@ class BedrockService:
         Uses Nova Pro for maximum quality. Teaches, explains, and builds intuition.
         """
         if self._demo:
-            return _DEMO_REFORMAT
+            return _demo_reformat_from_text(text)
         prompt = (
             "You are an expert tutor. Transform the raw study content below into a complete, "
             "deeply explanatory lesson for a student with ADHD.\n\n"
@@ -620,11 +682,7 @@ class BedrockService:
         available_minutes: int = 90,
     ) -> dict:
         if self._demo:
-            num_sprints = max(1, available_minutes // 15)
-            plan = dict(_DEMO_SESSION_PLAN)
-            plan["sprints"] = _DEMO_SESSION_PLAN["sprints"][:num_sprints]
-            plan["total_sprints"] = len(plan["sprints"])
-            return plan
+            return _demo_session_plan_from_context(goal, materials_summary, available_minutes)
         num_sprints = max(1, available_minutes // 15)
         prompt = (
             f"Create a structured study session plan for a student with ADHD.\n"

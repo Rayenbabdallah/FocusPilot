@@ -12,6 +12,78 @@ from app.models.session import DriftEvent, Sprint, StudySession
 logger = logging.getLogger(__name__)
 
 
+def _fallback_chunk_from_raw_text(raw_text: str, fallback_index: int = 0) -> dict | None:
+    """
+    Build a minimal chunk when AI chunking/reformatting is unavailable.
+    Uses the first ~900 words to keep sprint payloads bounded.
+    """
+    text = (raw_text or "").strip()
+    if not text:
+        return None
+    words = text.split()
+    clipped = " ".join(words[:900])
+    wc = len(clipped.split())
+    return {
+        "index": fallback_index,
+        "text": clipped,
+        "original_text": clipped,
+        "word_count": wc,
+    }
+
+
+def _is_generic_template_text(text: str) -> bool:
+    lowered = str(text or "").lower()
+    if not lowered.strip():
+        return False
+    # Only flag text that contains phrases exclusive to the old generic fallback
+    # template — NOT phrases that appear in our own well-structured prompt output.
+    # "what you'll learn" and "the concept" were removed because they are required
+    # section headers in our Bedrock reformat prompt and would incorrectly flag
+    # good AI output as boilerplate.
+    if "this section introduces the key concepts in your study material" in lowered:
+        return True
+    generic_markers = (
+        "think of it like a recipe",
+        "core idea:",
+        "real-world applications of this concept",
+    )
+    return sum(1 for marker in generic_markers if marker in lowered) >= 2
+
+
+def _raw_text_slice(raw_text: str, chunk_index: int, chunk_size_words: int = 900, overlap_words: int = 100) -> str:
+    words = (raw_text or "").split()
+    if not words:
+        return ""
+    stride = max(1, chunk_size_words - overlap_words)
+    start = max(0, chunk_index) * stride
+    if start >= len(words):
+        start = max(0, len(words) - chunk_size_words)
+    end = min(len(words), start + chunk_size_words)
+    return " ".join(words[start:end]).strip()
+
+
+def _normalize_chunk_for_display(chunk: dict) -> dict:
+    """
+    Ensure sprint content stays faithful to the source material.
+    Keep AI reformatting when it's good, but reject known generic fallback boilerplate.
+    """
+    if not isinstance(chunk, dict):
+        return {}
+
+    text = str(chunk.get("text", "") or "")
+    original = str(chunk.get("original_text", "") or "")
+    lowered = text.lower()
+
+    looks_like_ai_error = lowered.startswith("[ai temporarily unavailable") or lowered.startswith("[ai error")
+    looks_like_generic_boilerplate = _is_generic_template_text(text)
+
+    if original and (looks_like_ai_error or looks_like_generic_boilerplate):
+        fixed = dict(chunk)
+        fixed["text"] = original
+        return fixed
+    return chunk
+
+
 async def kickoff_session(
     db,
     student_id: str,
@@ -27,13 +99,35 @@ async def kickoff_session(
     """
     from app.services.bedrock import BedrockService
 
+    # ── Abandon any existing active sessions for this student ───────────────
+    existing = await db.execute(
+        select(StudySession).where(
+            StudySession.student_id == student_id,
+            StudySession.status == "active",
+        )
+    )
+    for old in existing.scalars().all():
+        old.status = "abandoned"
+    await db.flush()
+
     # ── Fetch materials ──────────────────────────────────────────────────────
     materials: list[Material] = []
+    seen_material_ids: set[str] = set()
     for mid in material_ids:
-        result = await db.execute(select(Material).where(Material.id == mid))
+        if mid in seen_material_ids:
+            continue
+        seen_material_ids.add(mid)
+        result = await db.execute(
+            select(Material).where(
+                Material.id == mid,
+                Material.student_id == student_id,
+            )
+        )
         mat = result.scalar_one_or_none()
         if mat:
             materials.append(mat)
+    if not materials:
+        raise ValueError("No valid materials found for this student")
 
     # ── Build summary string (all sections, not just first chunk) ───────────
     summary_parts: list[str] = []
@@ -77,17 +171,33 @@ async def kickoff_session(
     sprint_plans: list[dict] = plan.get("sprints", [])
 
     # ── Collect all content chunks across materials ──────────────────────────
-    all_chunks: list[dict] = []
+    chunks_by_material: list[tuple[Material, list[dict]]] = []
     for mat in materials:
+        material_chunks: list[dict] = []
         for chunk in mat.get_chunks() or []:
             if isinstance(chunk, dict):
-                all_chunks.append(
+                material_chunks.append(
                     {
                         "material_id": mat.id,
                         "material_title": mat.title,
                         **chunk,
                     }
                 )
+        if not material_chunks:
+            fallback = _fallback_chunk_from_raw_text(mat.raw_text or "", 0)
+            if fallback:
+                material_chunks.append(
+                    {
+                        "material_id": mat.id,
+                        "material_title": mat.title,
+                        **fallback,
+                    }
+                )
+        if material_chunks:
+            chunks_by_material.append((mat, material_chunks))
+
+    if not chunks_by_material:
+        raise ValueError("Selected materials contain no readable content")
 
     # ── Persist StudySession ─────────────────────────────────────────────────
     session = StudySession(
@@ -102,14 +212,15 @@ async def kickoff_session(
     await db.flush()
 
     # ── Create Sprint records ────────────────────────────────────────────────
-    # Walk through all_chunks sequentially (not cycling) so each sprint gets
-    # a unique, forward-progressing chunk across all materials.
+    # Round-robin across selected materials so early sprints cover selections.
     sprints: list[Sprint] = []
     for i, sp in enumerate(sprint_plans):
-        if all_chunks:
-            # Sequential walk: clamp at last chunk if sprints > chunks
-            chunk_data = all_chunks[min(i, len(all_chunks) - 1)]
-            material_id: str | None = chunk_data.get("material_id")
+        if chunks_by_material:
+            mat_idx = i % len(chunks_by_material)
+            chunk_round = i // len(chunks_by_material)
+            mat, material_chunks = chunks_by_material[mat_idx]
+            chunk_data = material_chunks[min(chunk_round, len(material_chunks) - 1)]
+            material_id: str | None = mat.id
         else:
             chunk_data = {"text": sp.get("focus", goal), "material_title": "", "word_count": 0}
             material_id = material_ids[0] if material_ids else None
@@ -125,7 +236,8 @@ async def kickoff_session(
         sprint.set_content_chunk(
             {
                 "index": chunk_data.get("index", i),
-                "text": chunk_data.get("text", sp.get("focus", "")),
+                "text": _normalize_chunk_for_display(chunk_data).get("text", sp.get("focus", "")),
+                "original_text": chunk_data.get("original_text"),
                 "material_title": chunk_data.get("material_title", ""),
                 "title": sp.get("title", f"Sprint {i + 1}"),
                 "word_count": chunk_data.get("word_count", 0),
@@ -146,6 +258,7 @@ async def kickoff_session(
         "first_task": first_task,
         "first_sprint_id": first_sprint.id if first_sprint else None,
         "first_chunk": first_chunk,
+        "materials_used": [{"id": m.id, "title": m.title} for m in materials],
     }
 
 
@@ -160,29 +273,42 @@ async def get_sprint_chunk(db, sprint_id: str) -> dict:
         return {}
 
     if not sprint.material_id:
-        return sprint.get_content_chunk()
+        return _normalize_chunk_for_display(sprint.get_content_chunk())
 
     mat_result = await db.execute(select(Material).where(Material.id == sprint.material_id))
     material = mat_result.scalar_one_or_none()
     if not material:
-        return sprint.get_content_chunk()
+        return _normalize_chunk_for_display(sprint.get_content_chunk())
 
     chunks = material.get_chunks()
     if not isinstance(chunks, list) or not chunks:
-        return sprint.get_content_chunk()
+        return _normalize_chunk_for_display(sprint.get_content_chunk())
 
     # Use the stored chunk index (correct for multi-material sessions),
     # falling back to sprint_number only if index isn't stored yet.
     stored = sprint.get_content_chunk()
     target = stored.get("index", sprint.sprint_number)
 
+    def _with_raw_fallback(candidate: dict, idx: int) -> dict:
+        normalized = _normalize_chunk_for_display(candidate)
+        text = str(normalized.get("text", "") or "")
+        if _is_generic_template_text(text):
+            raw_slice = _raw_text_slice(material.raw_text or "", idx)
+            if raw_slice:
+                fixed = dict(normalized)
+                fixed["text"] = raw_slice
+                fixed["original_text"] = raw_slice
+                fixed["word_count"] = len(raw_slice.split())
+                return fixed
+        return normalized
+
     if isinstance(target, int) and 0 <= target < len(chunks):
         c = chunks[target]
-        return c if isinstance(c, dict) else sprint.get_content_chunk()
+        return _with_raw_fallback(c, target) if isinstance(c, dict) else sprint.get_content_chunk()
 
     # Out of range → return last chunk
     last = chunks[-1]
-    return last if isinstance(last, dict) else sprint.get_content_chunk()
+    return _with_raw_fallback(last, len(chunks) - 1) if isinstance(last, dict) else sprint.get_content_chunk()
 
 
 async def complete_sprint(

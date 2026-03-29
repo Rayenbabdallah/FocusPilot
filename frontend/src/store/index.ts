@@ -107,7 +107,7 @@ export const useStore = create<Store>()(
       materials: [],
       isUploading: false,
       setMaterials: (m) => set({ materials: m }),
-      addMaterial: (m) => set((state) => ({ materials: [...state.materials, m] })),
+      addMaterial: (m) => set((state) => ({ materials: [m, ...state.materials] })),
       setUploading: (b) => set({ isUploading: b }),
 
       // Profile slice
@@ -133,6 +133,21 @@ export const useStore = create<Store>()(
     }),
     {
       name: 'focuspilot-store',
+      version: 3,
+      migrate: (persistedState: unknown) => {
+        const state = (persistedState ?? {}) as Partial<Store>
+        return {
+          ...state,
+          // Force-reset active session data across releases to avoid stale
+          // sprint/chunk/session IDs surviving backend/data schema changes.
+          currentSession: null,
+          currentSprint: null,
+          currentChunk: null,
+          plan: null,
+          tutorHistory: [],
+          isSessionActive: false,
+        } as Store
+      },
       partialize: (state) => ({
         studentId: state.studentId,
         studentName: state.studentName,

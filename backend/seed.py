@@ -14,6 +14,10 @@ import sys
 import uuid
 from datetime import datetime, timedelta
 
+# ── Windows UTF-8 fix (handles ✓ and other non-ASCII in print statements) ───
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
 # ── Path & env setup ────────────────────────────────────────────────────────
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from dotenv import load_dotenv

@@ -32,6 +32,7 @@ export interface SessionPlan {
 export interface SessionStartResponse {
   session_id: string; plan: SessionPlan; first_task: string
   first_sprint_id: string | null; first_chunk: ContentChunk
+  materials_used?: { id: string; title: string }[]
 }
 
 export interface Sprint {

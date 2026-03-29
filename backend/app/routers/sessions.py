@@ -3,9 +3,10 @@ from __future__ import annotations
 from typing import Any, Dict, List
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+import logging
 
 from app.database import get_db
 from app.models.material import Material
@@ -16,6 +17,7 @@ from app.services import session_engine
 from app.services.bedrock import BedrockService
 
 router = APIRouter(prefix="/api/sessions", tags=["sessions"])
+logger = logging.getLogger(__name__)
 
 
 # ─── Request bodies ────────────────────────────────────────────────────────────
@@ -28,23 +30,60 @@ class StartSessionBody(BaseModel):
 
 
 class CompleteSprintBody(BaseModel):
+    student_id: str
     quiz_score: float = 0.0
-    topics_covered: List[str] = []
+    topics_covered: List[str] = Field(default_factory=list)
 
 
 class DriftBody(BaseModel):
+    student_id: str
     sprint_id: str
     signal_type: str
 
 
 class TutorBody(BaseModel):
+    student_id: str
     question: str
     current_content: str = ""
-    conversation_history: List[Dict[str, str]] = []
+    conversation_history: List[Dict[str, str]] = Field(default_factory=list)
 
 
 class ReexplainBody(BaseModel):
+    student_id: str
     chunk_text: str
+
+
+async def _get_owned_session(
+    db: AsyncSession,
+    session_id: str,
+    student_id: str,
+) -> StudySession:
+    result = await db.execute(
+        select(StudySession).where(
+            StudySession.id == session_id,
+            StudySession.student_id == student_id,
+        )
+    )
+    session = result.scalar_one_or_none()
+    if not session:
+        raise HTTPException(status_code=404, detail="Session not found")
+    return session
+
+
+async def _get_owned_sprint(
+    db: AsyncSession,
+    session_id: str,
+    sprint_id: str,
+    student_id: str,
+) -> Sprint:
+    await _get_owned_session(db, session_id, student_id)
+    result = await db.execute(
+        select(Sprint).where(Sprint.id == sprint_id, Sprint.session_id == session_id)
+    )
+    sprint = result.scalar_one_or_none()
+    if not sprint:
+        raise HTTPException(status_code=404, detail="Sprint not found")
+    return sprint
 
 
 # ─── Routes ────────────────────────────────────────────────────────────────────
@@ -71,17 +110,29 @@ async def start_session(
             material_ids=body.material_ids,
             available_minutes=body.available_minutes,
         )
+        logger.info(
+            "Started session student_id=%s requested_materials=%s used_materials=%s session_id=%s",
+            body.student_id,
+            len(body.material_ids),
+            len(data.get("materials_used", [])),
+            data.get("session_id"),
+        )
         await db.commit()
         return data
+    except ValueError as e:
+        await db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception("Failed to start session for student_id=%s", body.student_id)
+        raise HTTPException(status_code=500, detail="Failed to start session")
 
 
 @router.post("/{session_id}/sprint/{sprint_id}/start")
 async def start_sprint(
     session_id: str,
     sprint_id: str,
+    student_id: str,
     db: AsyncSession = Depends(get_db),
 ) -> Dict[str, Any]:
     """
@@ -91,21 +142,19 @@ async def start_sprint(
     """
     from datetime import datetime
 
-    result = await db.execute(
-        select(Sprint).where(Sprint.id == sprint_id, Sprint.session_id == session_id)
-    )
-    sprint = result.scalar_one_or_none()
-    if not sprint:
-        raise HTTPException(status_code=404, detail="Sprint not found")
+    sprint = await _get_owned_sprint(db, session_id, sprint_id, student_id)
 
     try:
         sprint.status = "active"
         sprint.started_at = datetime.utcnow()
         chunk = await session_engine.get_sprint_chunk(db, sprint_id)
+        # Keep persisted sprint chunk in sync with latest normalized chunk.
+        sprint.set_content_chunk(chunk)
         await db.commit()
-    except Exception as e:
+    except Exception:
         await db.rollback()
-        raise HTTPException(status_code=500, detail=f"Failed to start sprint: {e}")
+        logger.exception("Failed to start sprint_id=%s for session_id=%s", sprint_id, session_id)
+        raise HTTPException(status_code=500, detail="Failed to start sprint")
 
     return {
         "sprint_id": sprint.id,
@@ -129,11 +178,7 @@ async def complete_sprint(
 
     Returns: {retention_snapshot, next_sprint_id, is_session_done}
     """
-    result = await db.execute(
-        select(Sprint).where(Sprint.id == sprint_id, Sprint.session_id == session_id)
-    )
-    if not result.scalar_one_or_none():
-        raise HTTPException(status_code=404, detail="Sprint not found")
+    await _get_owned_sprint(db, session_id, sprint_id, body.student_id)
 
     try:
         data = await session_engine.complete_sprint(
@@ -146,6 +191,10 @@ async def complete_sprint(
         return data
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+    except Exception:
+        await db.rollback()
+        logger.exception("Failed to complete sprint_id=%s for session_id=%s", sprint_id, session_id)
+        raise HTTPException(status_code=500, detail="Failed to complete sprint")
 
 
 @router.post("/{session_id}/drift")
@@ -159,9 +208,7 @@ async def record_drift(
 
     Returns: {reanchor_question}
     """
-    result = await db.execute(select(StudySession).where(StudySession.id == session_id))
-    if not result.scalar_one_or_none():
-        raise HTTPException(status_code=404, detail="Session not found")
+    await _get_owned_session(db, session_id, body.student_id)
 
     try:
         reanchor_question = await session_engine.log_drift(
@@ -171,8 +218,9 @@ async def record_drift(
             signal_type=body.signal_type,
         )
         await db.commit()
-    except Exception as e:
+    except Exception:
         await db.rollback()
+        logger.exception("Failed to record drift for session_id=%s", session_id)
         # Drift logging must never crash the session — return a safe fallback
         reanchor_question = "What was the last concept you were reading about?"
     return {"reanchor_question": reanchor_question}
@@ -189,9 +237,7 @@ async def tutor_chat(
 
     Returns: {answer}
     """
-    result = await db.execute(select(StudySession).where(StudySession.id == session_id))
-    if not result.scalar_one_or_none():
-        raise HTTPException(status_code=404, detail="Session not found")
+    await _get_owned_session(db, session_id, body.student_id)
 
     try:
         bedrock = BedrockService()
@@ -200,7 +246,8 @@ async def tutor_chat(
             current_content=body.current_content,
             conversation_history=body.conversation_history,
         )
-    except Exception as e:
+    except Exception:
+        logger.exception("Tutor call failed for session_id=%s", session_id)
         answer = "I'm having trouble connecting right now. Try rephrasing your question or reviewing the content directly."
     return {"answer": answer}
 
@@ -212,17 +259,20 @@ async def reexplain_content(
     db: AsyncSession = Depends(get_db),
 ) -> Dict[str, str]:
     """Re-explain the current chunk from a different angle for a confused student."""
-    result = await db.execute(select(StudySession).where(StudySession.id == session_id))
-    if not result.scalar_one_or_none():
-        raise HTTPException(status_code=404, detail="Session not found")
-    bedrock = BedrockService()
-    explanation = await bedrock.reexplain_chunk(body.chunk_text)
-    return {"explanation": explanation}
+    await _get_owned_session(db, session_id, body.student_id)
+    try:
+        bedrock = BedrockService()
+        explanation = await bedrock.reexplain_chunk(body.chunk_text)
+        return {"explanation": explanation}
+    except Exception:
+        logger.exception("Re-explain call failed for session_id=%s", session_id)
+        raise HTTPException(status_code=500, detail="Failed to re-explain content")
 
 
 @router.post("/{session_id}/close")
 async def close_session(
     session_id: str,
+    student_id: str,
     db: AsyncSession = Depends(get_db),
 ) -> Dict[str, Any]:
     """
@@ -230,17 +280,16 @@ async def close_session(
 
     Returns: {total_time_minutes, avg_score, topics_covered, final_snapshot, sessions_streak}
     """
-    result = await db.execute(select(StudySession).where(StudySession.id == session_id))
-    if not result.scalar_one_or_none():
-        raise HTTPException(status_code=404, detail="Session not found")
+    await _get_owned_session(db, session_id, student_id)
 
     try:
         data = await session_engine.close_session(db=db, session_id=session_id)
         return data
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to close session: {e}")
+    except Exception:
+        logger.exception("Failed to close session_id=%s", session_id)
+        raise HTTPException(status_code=500, detail="Failed to close session")
 
 
 @router.get("/active/{student_id}")
@@ -254,6 +303,10 @@ async def get_active_session(
     Returns: {session_id, student_id, goal, status, started_at, plan, first_sprint_id}
     or 404 if no active session exists.
     """
+    student_result = await db.execute(select(Student).where(Student.id == student_id))
+    if not student_result.scalar_one_or_none():
+        raise HTTPException(status_code=404, detail="Student not found")
+
     result = await db.execute(
         select(StudySession)
         .where(StudySession.student_id == student_id, StudySession.status == "active")
@@ -298,6 +351,10 @@ async def session_history(
 
     Returns: [{session_id, goal, started_at, ended_at, total_sprints, avg_score, status}]
     """
+    student_result = await db.execute(select(Student).where(Student.id == student_id))
+    if not student_result.scalar_one_or_none():
+        raise HTTPException(status_code=404, detail="Student not found")
+
     result = await db.execute(
         select(StudySession)
         .where(StudySession.student_id == student_id)

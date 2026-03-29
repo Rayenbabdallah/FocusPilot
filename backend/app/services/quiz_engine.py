@@ -170,7 +170,7 @@ async def submit_review_result(
 
     if was_correct:
         new_interval = max(1, round(item.interval_days * item.ease_factor))
-        new_ef = min(DEFAULT_EASE_FACTOR, item.ease_factor + 0.1)
+        new_ef = item.ease_factor + 0.1  # SM-2: ease factor grows with correct answers, no upper cap
         item.times_correct += 1
     else:
         new_interval = 1
@@ -208,12 +208,13 @@ async def _upsert_spaced_repetition(
         question = questions[i]
         question_text = question.get("question", "")
 
-        # Try to find an existing item by question text prefix (first 50 chars)
-        prefix = question_text[:50]
+        # Match against a longer prefix (120 chars) to reduce false collisions
+        # between distinct questions that share a short opening phrase.
+        question_fragment = question_text[:120]
         existing_result = await db.execute(
             select(SpacedRepetitionItem).where(
                 SpacedRepetitionItem.student_id == student_id,
-                SpacedRepetitionItem.question.contains(prefix),
+                SpacedRepetitionItem.question.contains(question_fragment),
             )
         )
         item = existing_result.scalar_one_or_none()

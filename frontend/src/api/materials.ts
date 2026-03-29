@@ -22,9 +22,10 @@ export async function uploadMaterial(
 
 export async function updateMaterialSubject(
   materialId: string,
+  studentId: string,
   subject: string,
 ): Promise<void> {
-  await client.patch(`/materials/${materialId}/subject`, { subject })
+  await client.patch(`/materials/${materialId}/subject`, { subject }, { params: { student_id: studentId } })
 }
 
 export async function getMaterials(studentId: string): Promise<MaterialListItem[]> {
@@ -33,24 +34,30 @@ export async function getMaterials(studentId: string): Promise<MaterialListItem[
 }
 
 export async function getMaterialChunks(
-  materialId: string
+  materialId: string,
+  studentId: string,
 ): Promise<{ material_id: string; title: string; chunks: ContentChunk[] }> {
   const response = await client.get<{ material_id: string; title: string; chunks: ContentChunk[] }>(
-    `/materials/${materialId}/chunks`
+    `/materials/${materialId}/chunks`,
+    { params: { student_id: studentId } }
   )
   return response.data
 }
 
-export async function deleteMaterial(materialId: string): Promise<{ deleted: boolean }> {
-  const response = await client.delete<{ deleted: boolean }>(`/materials/${materialId}`)
+export async function deleteMaterial(materialId: string, studentId: string): Promise<{ deleted: boolean }> {
+  const response = await client.delete<{ deleted: boolean }>(`/materials/${materialId}`, {
+    params: { student_id: studentId },
+  })
   return response.data
 }
 
 export async function getCheatsheet(
-  materialId: string
+  materialId: string,
+  studentId: string,
 ): Promise<{ material_id: string; title: string; cheatsheet: string }> {
   const response = await client.get<{ material_id: string; title: string; cheatsheet: string }>(
-    `/materials/${materialId}/cheatsheet`
+    `/materials/${materialId}/cheatsheet`,
+    { params: { student_id: studentId } }
   )
   return response.data
 }

@@ -202,7 +202,8 @@ async def ingest_material(material_id: str, database_url: str) -> None:
             page_images: list[dict] = []
             if material.file_path:
                 if material.type == "pdf":
-                    file_bytes = open(material.file_path, "rb").read()
+                    async with aiofiles.open(material.file_path, "rb") as f:
+                        file_bytes = await f.read()
                     raw_text, page_images = await process_pdf(file_bytes)
                 else:
                     raw_text = await extract_text_file(material.file_path)
@@ -241,7 +242,8 @@ async def ingest_material(material_id: str, database_url: str) -> None:
 
 async def extract_pdf_text(file_path: str) -> str:
     try:
-        file_bytes = open(file_path, "rb").read()
+        async with aiofiles.open(file_path, "rb") as f:
+            file_bytes = await f.read()
         text, _ = await process_pdf(file_bytes)
         return text
     except Exception as e:

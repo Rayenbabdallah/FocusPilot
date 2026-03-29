@@ -12,7 +12,16 @@ import { getActiveSession } from './api/sessions'
 import { useStudyReminder } from './hooks/useStudyReminder'
 
 export default function App() {
-  const { studentId, setStudentName, currentSession, currentSprint, setSession, setPlan, reminderTime } = useStore()
+  const {
+    studentId,
+    setStudentName,
+    currentSession,
+    currentSprint,
+    setSession,
+    setPlan,
+    clearSession,
+    reminderTime,
+  } = useStore()
   useStudyReminder(reminderTime)
 
   useEffect(() => {
@@ -34,20 +43,29 @@ export default function App() {
     return () => { cancelled = true }
   }, [studentId])
 
-  // Restore active session from DB on fresh load, or when session exists but sprint hasn't started
-  // (e.g. page refreshed before first sprint began — sessionStorage cleared but localStorage has the session)
+  // Reconcile local persisted session state with backend truth on app load.
+  // This prevents stale local sessions from surviving DB resets / env switches.
   useEffect(() => {
-    if (currentSession !== null && currentSprint !== null) return
     let cancelled = false
     async function restoreSession() {
       try {
         const active = await getActiveSession(studentId)
-        if (cancelled || !active) return
+        if (cancelled) return
+        if (!active) {
+          if (currentSession || currentSprint) {
+            clearSession()
+          }
+          sessionStorage.removeItem('focuspilot_first_sprint_id')
+          sessionStorage.removeItem('focuspilot_next_sprint_id')
+          return
+        }
+        // If we already have THIS exact session and sprint, keep it.
+        if (currentSession?.id === active.session_id && currentSprint) return
         setSession({
           id: active.session_id,
           student_id: active.student_id,
           goal: active.goal,
-          planned_sprints: active.plan.sprints,
+          planned_sprints: active.plan?.sprints ?? [],
           status: active.status as 'active',
           started_at: active.started_at,
           ended_at: active.ended_at,
@@ -67,7 +85,7 @@ export default function App() {
     }
     restoreSession()
     return () => { cancelled = true }
-  }, [studentId])
+  }, [studentId, currentSession?.id, currentSprint?.id])
 
   return (
     <>

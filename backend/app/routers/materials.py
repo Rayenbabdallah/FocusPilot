@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import os
 import uuid
-from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile, File
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+import logging
 
 from app.config import get_settings
 from app.database import get_db
@@ -19,6 +19,47 @@ from app.services.ingestion import (
 )
 
 router = APIRouter(prefix="/api/materials", tags=["materials"])
+logger = logging.getLogger(__name__)
+
+
+async def _ensure_student_exists(db: AsyncSession, student_id: str) -> None:
+    result = await db.execute(select(Student).where(Student.id == student_id))
+    if not result.scalar_one_or_none():
+        raise HTTPException(status_code=404, detail="Student not found")
+
+
+async def _get_owned_material(
+    db: AsyncSession,
+    material_id: str,
+    student_id: str,
+) -> Material:
+    result = await db.execute(
+        select(Material).where(
+            Material.id == material_id,
+            Material.student_id == student_id,
+        )
+    )
+    material = result.scalar_one_or_none()
+    if not material:
+        raise HTTPException(status_code=404, detail="Material not found")
+    return material
+
+
+async def _read_upload_bytes_limited(file: UploadFile, max_bytes: int) -> bytes:
+    parts: list[bytes] = []
+    total = 0
+    while True:
+        chunk = await file.read(1024 * 1024)
+        if not chunk:
+            break
+        total += len(chunk)
+        if total > max_bytes:
+            raise HTTPException(
+                status_code=413,
+                detail=f"File too large. Maximum allowed size is {max_bytes // (1024 * 1024)} MB.",
+            )
+        parts.append(chunk)
+    return b"".join(parts)
 
 
 @router.post("/upload")
@@ -36,17 +77,9 @@ async def upload_material(
     """
     settings = get_settings()
 
-    # Validate student
-    result = await db.execute(select(Student).where(Student.id == student_id))
-    if not result.scalar_one_or_none():
-        raise HTTPException(status_code=404, detail="Student not found")
+    await _ensure_student_exists(db, student_id)
 
-    file_bytes = await file.read()
-    if len(file_bytes) > MAX_FILE_BYTES:
-        raise HTTPException(
-            status_code=413,
-            detail=f"File too large. Maximum allowed size is {MAX_FILE_BYTES // (1024 * 1024)} MB.",
-        )
+    file_bytes = await _read_upload_bytes_limited(file, MAX_FILE_BYTES)
     filename = file.filename or "upload"
     ext = os.path.splitext(filename)[1].lower()
 
@@ -84,7 +117,8 @@ async def upload_material(
         )
     except Exception as e:
         await db.rollback()
-        raise HTTPException(status_code=500, detail=f"Failed to process and store material: {e}")
+        logger.exception("Material processing failed for student_id=%s", student_id)
+        raise HTTPException(status_code=500, detail="Failed to process and store material")
     material.file_path = file_path
     if subject and subject.strip():
         material.subject = subject.strip()
@@ -111,6 +145,7 @@ async def list_materials(
     db: AsyncSession = Depends(get_db),
 ) -> List[Dict[str, Any]]:
     """Return [{id, title, type, chunk_count, created_at}] for a student."""
+    await _ensure_student_exists(db, student_id)
     result = await db.execute(
         select(Material)
         .where(Material.student_id == student_id)
@@ -133,13 +168,11 @@ async def list_materials(
 @router.get("/{material_id}/chunks")
 async def get_material_chunks(
     material_id: str,
+    student_id: str,
     db: AsyncSession = Depends(get_db),
 ) -> Dict[str, Any]:
     """Return {material_id, title, chunks: [...]}."""
-    result = await db.execute(select(Material).where(Material.id == material_id))
-    material = result.scalar_one_or_none()
-    if not material:
-        raise HTTPException(status_code=404, detail="Material not found")
+    material = await _get_owned_material(db, material_id, student_id)
     return {
         "material_id": material.id,
         "title": material.title,
@@ -150,6 +183,7 @@ async def get_material_chunks(
 @router.get("/{material_id}/cheatsheet")
 async def get_cheatsheet(
     material_id: str,
+    student_id: str,
     db: AsyncSession = Depends(get_db),
 ) -> Dict[str, Any]:
     """
@@ -158,16 +192,12 @@ async def get_cheatsheet(
 
     Returns: {material_id, title, cheatsheet}
     """
-    result = await db.execute(select(Material).where(Material.id == material_id))
-    material = result.scalar_one_or_none()
-    if not material:
-        raise HTTPException(status_code=404, detail="Material not found")
+    material = await _get_owned_material(db, material_id, student_id)
 
     if not material.cheatsheet:
         # Generate on demand and cache
         try:
             from app.services.bedrock import BedrockService
-            from app.services.ingestion import chunk_text
             bedrock = BedrockService()
             full_text = material.raw_text or ""
             # Also include processed chunk text for richer cheatsheet
@@ -178,7 +208,8 @@ async def get_cheatsheet(
             material.cheatsheet = await bedrock.generate_cheatsheet(material.title, full_text)
             await db.commit()
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Failed to generate cheatsheet: {e}")
+            logger.exception("Cheatsheet generation failed for material_id=%s", material_id)
+            raise HTTPException(status_code=500, detail="Failed to generate cheatsheet")
 
     return {
         "material_id": material.id,
@@ -194,14 +225,12 @@ class SubjectUpdate(BaseModel):
 @router.patch("/{material_id}/subject")
 async def update_material_subject(
     material_id: str,
+    student_id: str,
     body: SubjectUpdate,
     db: AsyncSession = Depends(get_db),
 ) -> Dict[str, Any]:
     """Update the subject tag for a material."""
-    result = await db.execute(select(Material).where(Material.id == material_id))
-    material = result.scalar_one_or_none()
-    if not material:
-        raise HTTPException(status_code=404, detail="Material not found")
+    material = await _get_owned_material(db, material_id, student_id)
     material.subject = body.subject.strip() or None
     await db.commit()
     return {"material_id": material_id, "subject": material.subject}
@@ -210,13 +239,11 @@ async def update_material_subject(
 @router.delete("/{material_id}")
 async def delete_material(
     material_id: str,
+    student_id: str,
     db: AsyncSession = Depends(get_db),
 ) -> Dict[str, bool]:
     """Delete material record and file from disk."""
-    result = await db.execute(select(Material).where(Material.id == material_id))
-    material = result.scalar_one_or_none()
-    if not material:
-        raise HTTPException(status_code=404, detail="Material not found")
+    material = await _get_owned_material(db, material_id, student_id)
 
     if material.file_path and os.path.exists(material.file_path):
         try:

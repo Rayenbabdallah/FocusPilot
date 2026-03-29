@@ -23,7 +23,7 @@ export function useDriftDetection({
   isActive,
   scrollElementId = 'content-scroll-area',
 }: UseDriftDetectionParams): UseDriftDetectionResult {
-  const { isDrifting, reanchorQuestion, setDrifting, setReanchor } = useStore()
+  const { studentId, isDrifting, reanchorQuestion, setDrifting, setReanchor } = useStore()
 
   const inactivityTimerRef   = useRef<ReturnType<typeof setTimeout> | null>(null)
   const visibilityTimerRef   = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -50,7 +50,7 @@ export function useDriftDetection({
       if (!isActive || isTriggeringRef.current) return
       isTriggeringRef.current = true
       try {
-        const result = await recordDrift(sessionId, sprintId, signalType)
+        const result = await recordDrift(sessionId, sprintId, studentId, signalType)
         setDrifting(true)
         setReanchor(result.reanchor_question)
       } catch (err) {
@@ -59,7 +59,7 @@ export function useDriftDetection({
         isTriggeringRef.current = false
       }
     },
-    [isActive, sessionId, sprintId, setDrifting, setReanchor]
+    [isActive, sessionId, sprintId, studentId, setDrifting, setReanchor]
   )
 
   const resetInactivityTimer = useCallback(() => {

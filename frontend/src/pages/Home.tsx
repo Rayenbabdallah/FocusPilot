@@ -80,19 +80,28 @@ const MaterialCard = React.memo(function MaterialCard({
       animate={{ opacity: isDeleting ? 0.5 : 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.9 }}
       whileHover={{ scale: confirmDelete || isDeleting ? 1 : 1.02 }}
-      className="flex-shrink-0 glass p-4 min-w-[160px] max-w-[200px] relative group"
+      className="flex-shrink-0 glass p-4 min-w-[160px] max-w-[200px] relative group cursor-pointer"
+      onClick={() => {
+        if (!confirmDelete && !isDeleting) onToggle()
+      }}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if ((e.key === 'Enter' || e.key === ' ') && !confirmDelete && !isDeleting) {
+          e.preventDefault()
+          onToggle()
+        }
+      }}
     >
       {/* Selection overlay — first child so it renders BELOW all interactive elements */}
-      <button
-        onClick={onToggle}
+      <div
         className={clsx(
-          'absolute inset-0 rounded-2xl border-2 transition-all duration-200',
+          'absolute inset-0 rounded-2xl border-2 transition-all duration-200 pointer-events-none',
           selected
             ? 'border-mint/70 bg-mint/[0.06]'
             : 'border-transparent'
         )}
         style={selected ? { boxShadow: '0 0 12px rgba(152,232,158,0.15) inset' } : undefined}
-        aria-label={selected ? 'Deselect' : 'Select'}
       />
 
       {/* All card content sits above the overlay via relative z-10 */}
@@ -111,13 +120,13 @@ const MaterialCard = React.memo(function MaterialCard({
               <p className="text-white text-xs font-semibold text-center px-2">Delete "{m.title}"?</p>
               <div className="flex gap-2">
                 <button
-                  onClick={() => setConfirmDelete(false)}
+                  onClick={(e) => { e.stopPropagation(); setConfirmDelete(false) }}
                   className="px-3 py-1 rounded-full text-xs border border-white/10 text-zinc-400 hover:text-white transition-colors"
                 >
                   Cancel
                 </button>
                 <button
-                  onClick={onDelete}
+                  onClick={(e) => { e.stopPropagation(); onDelete() }}
                   className="px-3 py-1 rounded-full text-xs font-semibold transition-colors"
                   style={{ backgroundColor: 'rgba(225,29,72,0.2)', color: '#fca5a5', border: '1px solid rgba(225,29,72,0.3)' }}
                 >
@@ -132,7 +141,7 @@ const MaterialCard = React.memo(function MaterialCard({
           <MaterialIcon type={m.type} />
           <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
             <button
-              onClick={() => setEditingSubject(true)}
+              onClick={(e) => { e.stopPropagation(); setEditingSubject(true) }}
               disabled={isDeleting}
               className="rounded-full p-1.5 hover:bg-white/10 transition-colors min-w-[28px] min-h-[28px] flex items-center justify-center disabled:opacity-40"
               aria-label="Set subject"
@@ -140,7 +149,10 @@ const MaterialCard = React.memo(function MaterialCard({
               <Tag size={12} className="text-zinc-400" />
             </button>
             <button
-              onClick={() => !isDeleting && setConfirmDelete(true)}
+              onClick={(e) => {
+                e.stopPropagation()
+                if (!isDeleting) setConfirmDelete(true)
+              }}
               disabled={isDeleting}
               className="rounded-full p-1.5 hover:bg-rose-500/20 transition-colors min-w-[28px] min-h-[28px] flex items-center justify-center disabled:opacity-40"
               aria-label={isDeleting ? 'Deleting…' : 'Delete material'}
@@ -176,11 +188,12 @@ const MaterialCard = React.memo(function MaterialCard({
                   autoFocus
                   value={subjectInput}
                   onChange={(e) => setSubjectInput(e.target.value)}
+                  onClick={(e) => e.stopPropagation()}
                   onKeyDown={(e) => { if (e.key === 'Enter') commitSubject(); if (e.key === 'Escape') setEditingSubject(false) }}
                   placeholder="Subject…"
                   className="flex-1 text-xs rounded-lg px-2 py-1 bg-white/[0.06] border border-white/10 text-zinc-200 placeholder-zinc-600 focus:outline-none focus:border-white/20 min-w-0"
                 />
-                <button onClick={commitSubject} aria-label="Confirm subject" className="rounded-full p-1.5 hover:bg-white/10 flex-shrink-0 transition-colors">
+                <button onClick={(e) => { e.stopPropagation(); commitSubject() }} aria-label="Confirm subject" className="rounded-full p-1.5 hover:bg-white/10 flex-shrink-0 transition-colors">
                   <Check size={12} style={{ color: '#98E89E' }} />
                 </button>
               </div>
@@ -189,7 +202,7 @@ const MaterialCard = React.memo(function MaterialCard({
                   {existingSubjects.filter(s => s !== m.subject).map((s) => (
                     <button
                       key={s}
-                      onClick={() => { setSubjectInput(s); onSubjectChange(s); setEditingSubject(false) }}
+                      onClick={(e) => { e.stopPropagation(); setSubjectInput(s); onSubjectChange(s); setEditingSubject(false) }}
                       className="text-xs px-2 py-0.5 rounded-full transition-colors hover:opacity-90"
                       style={{ backgroundColor: 'rgba(112,128,232,0.15)', color: '#a5b4fc', border: '1px solid rgba(112,128,232,0.2)' }}
                     >
@@ -201,7 +214,7 @@ const MaterialCard = React.memo(function MaterialCard({
             </motion.div>
           ) : m.subject ? (
             <button
-              onClick={() => setEditingSubject(true)}
+              onClick={(e) => { e.stopPropagation(); setEditingSubject(true) }}
               className="mt-1.5 text-xs px-2 py-0.5 rounded-full transition-colors hover:opacity-80"
               style={{ backgroundColor: 'rgba(112,128,232,0.12)', color: '#a5b4fc' }}
             >
@@ -349,7 +362,8 @@ export default function Home() {
   }, [studentId])
 
   useEffect(() => {
-    setSelectedMaterialIds(materials.map((m) => m.id))
+    // Keep only still-existing selections; never auto-select everything.
+    setSelectedMaterialIds((prev) => prev.filter((id) => materials.some((m) => m.id === id)))
   }, [materials])
 
   async function loadMaterials() {
@@ -429,7 +443,7 @@ export default function Home() {
     setMaterials(materials.filter((m) => m.id !== id))
     setSelectedMaterialIds((prev) => prev.filter((mid) => mid !== id))
     try {
-      await deleteMaterial(id)
+      await deleteMaterial(id, studentId)
     } catch (err) {
       // Rollback on failure
       setMaterials(previous)
@@ -446,7 +460,7 @@ export default function Home() {
     // Optimistic update
     setMaterials(materials.map((m) => m.id === id ? { ...m, subject: subject || null } : m))
     try {
-      await updateMaterialSubject(id, subject)
+      await updateMaterialSubject(id, studentId, subject)
     } catch (err) {
       // Rollback on failure
       setMaterials(previous)
@@ -472,6 +486,10 @@ export default function Home() {
   async function handleStartSession(e: React.FormEvent) {
     e.preventDefault()
     if (!goal.trim()) return
+    if (selectedMaterialIds.length === 0) {
+      setSessionError('Select at least one material before starting.')
+      return
+    }
     setSessionLoading(true)
     setSessionError(null)
     clearSession()
@@ -485,6 +503,15 @@ export default function Home() {
         material_ids: selectedMaterialIds,
         available_minutes: selectedMinutes,
       })
+      if (Array.isArray(result.materials_used)) {
+        const usedIds = new Set(result.materials_used.map((m) => m.id))
+        const missing = selectedMaterialIds.filter((id) => !usedIds.has(id))
+        if (missing.length > 0) {
+          setSessionError('Some selected materials were not included. Re-select your chapters and try again.')
+          setSessionLoading(false)
+          return
+        }
+      }
       const session: StudySession = {
         id: result.session_id,
         student_id: studentId,
@@ -579,13 +606,28 @@ export default function Home() {
                 setSessionLoading(true)
                 setSessionError(null)
                 clearSession()
+                const quickStartMaterials = selectedMaterialIds
+                if (quickStartMaterials.length === 0) {
+                  setSessionLoading(false)
+                  setSessionError('Select at least one material before starting.')
+                  return
+                }
                 try {
                   const result = await startSession({
                     student_id: studentId,
                     goal: lastGoal,
-                    material_ids: selectedMaterialIds.length ? selectedMaterialIds : materials.map((m) => m.id),
+                    material_ids: quickStartMaterials,
                     available_minutes: lastDuration,
                   })
+                  if (Array.isArray(result.materials_used)) {
+                    const usedIds = new Set(result.materials_used.map((m) => m.id))
+                    const missing = quickStartMaterials.filter((id) => !usedIds.has(id))
+                    if (missing.length > 0) {
+                      setSessionError('Some selected materials were not included. Re-select your chapters and try again.')
+                      setSessionLoading(false)
+                      return
+                    }
+                  }
                   const session: StudySession = {
                     id: result.session_id, student_id: studentId, goal: lastGoal,
                     planned_sprints: result.plan.sprints, status: 'active',
@@ -919,3 +961,4 @@ export default function Home() {
     </div>
   )
 }
+

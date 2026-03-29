@@ -8,13 +8,19 @@
 backend/.env
 backend/.venv/
 backend/venv/
+backend/pytest-cache-files-*/
+.pytest_cache/
 
 # Runtime and upload artifacts
 backend/uploads/
+backend/*.db
+backend/*.db-shm
+backend/*.db-wal
 
 # Frontend build and dependency artifacts
 frontend/node_modules/
 frontend/dist/
+frontend/.env.local
 ui-refrence/node_modules/
 ui-refrence/dist/
 
@@ -26,6 +32,7 @@ docs/*.log
 docs/*.out
 docs/*.synctex.gz
 docs/*.pdf
+!docs/technical_report.pdf
 
 # Local OS artifacts
 .DS_Store
@@ -34,3 +41,6 @@ Thumbs.db
 # Large local proposal file
 FocusPilot_Proposal_AWS.pdf
 Technical-Challenge.pdf
+
+# Local PDF extraction scratch files
+tmp_*.txt

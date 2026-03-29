@@ -38,32 +38,42 @@ mermaid.initialize({
     fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
     fontSize: '13px',
   },
-  securityLevel: 'loose',
+  securityLevel: 'strict',
 })
 
-let _mermaidCounter = 0
-
 function MermaidDiagram({ code }: { code: string }) {
-  const id = useRef(`mermaid-${++_mermaidCounter}`).current
-  const ref = useRef<HTMLDivElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
   const [error, setError] = useState<string | null>(null)
+  const [rendered, setRendered] = useState(false)
 
   useEffect(() => {
-    if (!ref.current) return
+    let cancelled = false
     setError(null)
+    setRendered(false)
+
+    // Fresh unique ID each render so mermaid never collides with a prior call
+    const id = `mermaid-${Date.now()}-${Math.random().toString(36).slice(2)}`
+
     mermaid.render(id, code.trim()).then(({ svg }) => {
-      if (ref.current) {
-        // Safe: mermaid sanitizes its own SVG output and securityLevel is set to 'loose'
-        // for diagram label rendering — no user-controlled input reaches this path.
-        ref.current.innerHTML = svg
+      if (!cancelled && containerRef.current) {
+        containerRef.current.innerHTML = svg
+        // Make SVG responsive
+        const svgEl = containerRef.current.querySelector('svg')
+        if (svgEl) {
+          svgEl.removeAttribute('height')
+          svgEl.style.maxWidth = '100%'
+          svgEl.style.height = 'auto'
+        }
+        setRendered(true)
       }
     }).catch((err) => {
-      setError(String(err?.message ?? err))
+      if (!cancelled) setError(String(err?.message ?? err))
     })
-  }, [code, id])
+
+    return () => { cancelled = true }
+  }, [code])
 
   if (error) {
-    // Fall back to styled code block so content is never lost
     return (
       <div className="my-4 px-5 py-4 rounded-2xl font-mono text-xs overflow-x-auto"
         style={{ backgroundColor: 'rgba(112,128,232,0.06)', color: '#a5b4fc', border: '1px solid rgba(112,128,232,0.12)' }}>
@@ -74,11 +84,13 @@ function MermaidDiagram({ code }: { code: string }) {
 
   return (
     <div className="my-5 flex justify-center">
-      <div
-        ref={ref}
-        className="rounded-2xl p-4 overflow-x-auto max-w-full"
-        style={{ backgroundColor: 'rgba(255,255,255,0.02)', border: '1px solid rgba(152,232,158,0.12)' }}
-      />
+      <div className="rounded-2xl p-4 overflow-x-auto max-w-full"
+        style={{ backgroundColor: 'rgba(255,255,255,0.02)', border: '1px solid rgba(152,232,158,0.12)' }}>
+        {!rendered && (
+          <p className="text-zinc-500 text-xs font-mono">Rendering diagram...</p>
+        )}
+        <div ref={containerRef} />
+      </div>
     </div>
   )
 }
@@ -118,7 +130,7 @@ function preprocessMarkdown(text: string): string {
     .join('\n')
 }
 
-function MarkdownContent({ text, small = false }: { text: string; small?: boolean }) {
+const MarkdownContent = React.memo(function MarkdownContent({ text, small = false }: { text: string; small?: boolean }) {
   const processed = preprocessMarkdown(text)
   const prose = small ? 'text-sm' : 'text-base'
 
@@ -263,7 +275,7 @@ function MarkdownContent({ text, small = false }: { text: string; small?: boolea
       {processed}
     </ReactMarkdown>
   )
-}
+}, (prev, next) => prev.text === next.text && prev.small === next.small)
 
 // ─── Score circle ─────────────────────────────────────────────────────────────
 
@@ -303,12 +315,13 @@ interface QuizModalProps {
   quiz: GenerateQuizResponse
   onComplete: (score: number, topics: string[], isDone: boolean) => void
   onClose: () => void
+  studentId: string
   sessionId: string
   sprintId: string
   chunkText: string
 }
 
-function QuizModal({ quiz, onComplete, onClose, sessionId, sprintId }: QuizModalProps) {
+function QuizModal({ quiz, onComplete, onClose, studentId, sessionId, sprintId }: QuizModalProps) {
   const [phase, setPhase] = useState<QuizPhase>('question')
   const [currentIdx, setCurrentIdx] = useState(0)
   const [answers, setAnswers] = useState<string[]>([])
@@ -386,13 +399,13 @@ function QuizModal({ quiz, onComplete, onClose, sessionId, sprintId }: QuizModal
     if (currentIdx === total - 1) {
       setSubmitting(true)
       try {
-        const grade = await submitQuiz(quiz.quiz_id, newAnswers)
+        const grade = await submitQuiz(quiz.quiz_id, studentId, newAnswers)
         setAnswers(newAnswers)
         setGradeResult(grade)
 
         const score = Math.round(grade.score)  // grade.score is already 0-100
         const topics = questions.map((q) => q.question.slice(0, 40))
-        const result = await completeSprint(sessionId, sprintId, score, topics)
+        const result = await completeSprint(sessionId, sprintId, studentId, score, topics)
         setSnapshot(result.retention_snapshot)
         setIsDone(result.is_session_done)
         if (result.next_sprint_id) {
@@ -403,7 +416,23 @@ function QuizModal({ quiz, onComplete, onClose, sessionId, sprintId }: QuizModal
           setPhase('results')
         }, 1200)
       } catch {
-        setPhase('results')
+        if (gradeResult) {
+          // submitQuiz succeeded but completeSprint failed — results are still valid
+          setPhase('results')
+        } else {
+          // submitQuiz itself failed — complete the sprint server-side so session can advance
+          try {
+            const topics = questions.map((q) => q.question.slice(0, 40))
+            const result = await completeSprint(sessionId, sprintId, studentId, 0, topics)
+            if (result.next_sprint_id) {
+              sessionStorage.setItem('focuspilot_next_sprint_id', result.next_sprint_id)
+            }
+            setIsDone(result.is_session_done)
+            onComplete(50, topics, result.is_session_done)
+          } catch {
+            onClose()
+          }
+        }
       } finally {
         setSubmitting(false)
       }
@@ -831,7 +860,7 @@ function FrustrationCard({ score, onContinue }: FrustrationCardProps) {
 
 // ─── Key Terms Strip ──────────────────────────────────────────────────────────
 
-function KeyTermsStrip({ text }: { text: string }) {
+const KeyTermsStrip = React.memo(function KeyTermsStrip({ text }: { text: string }) {
   const terms = Array.from(
     new Set(
       [...text.matchAll(/\*\*([^*]+)\*\*/g), ...text.matchAll(/`([^`]+)`/g)]
@@ -857,7 +886,7 @@ function KeyTermsStrip({ text }: { text: string }) {
       </div>
     </div>
   )
-}
+}, (prev, next) => prev.text === next.text)
 
 // ─── Drift Overlay (reference pattern) ───────────────────────────────────────
 
@@ -1015,11 +1044,12 @@ function TypingIndicator() {
 
 interface CheatsheetModalProps {
   materialId: string
+  studentId: string
   materialTitle: string
   onClose: () => void
 }
 
-function CheatsheetModal({ materialId, materialTitle, onClose }: CheatsheetModalProps) {
+function CheatsheetModal({ materialId, studentId, materialTitle, onClose }: CheatsheetModalProps) {
   const [cheatsheet, setCheatsheet] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -1027,7 +1057,7 @@ function CheatsheetModal({ materialId, materialTitle, onClose }: CheatsheetModal
   useEffect(() => {
     async function load() {
       try {
-        const data = await getCheatsheet(materialId)
+        const data = await getCheatsheet(materialId, studentId)
         setCheatsheet(data.cheatsheet)
       } catch {
         setError('Could not load cheatsheet. Try again.')
@@ -1036,7 +1066,7 @@ function CheatsheetModal({ materialId, materialTitle, onClose }: CheatsheetModal
       }
     }
     load()
-  }, [materialId])
+  }, [materialId, studentId])
 
   return (
     <motion.div
@@ -1292,6 +1322,7 @@ type SessionView = 'active' | 'complete'
 export default function Session() {
   const navigate = useNavigate()
   const {
+    studentId,
     currentSession, currentSprint, currentChunk, plan,
     setSession, setSprint, setChunk,
     tutorHistory, addTutorMessage,
@@ -1345,6 +1376,7 @@ export default function Session() {
   const focusCheckInRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const showQuizRef = useRef(false)
   const isDriftingRef = useRef(false)
+  const syncedSprintRef = useRef<string | null>(null)
 
   // Drift detection must be paused whenever any overlay is covering the content
   // — otherwise it fires "for no reason" while the user is in a quiz / break / etc.
@@ -1364,29 +1396,36 @@ export default function Session() {
   })
 
   useEffect(() => {
-    if (currentSession && !currentSprint) {
+    if (!currentSession) return
+    if (!currentSprint) {
       const storedSprintId = sessionStorage.getItem('focuspilot_first_sprint_id')
       if (storedSprintId) {
         sessionStorage.removeItem('focuspilot_first_sprint_id')
-        // Show energy check as a parallel overlay — sprint starts immediately
         setShowEnergyCheck(true)
+        syncedSprintRef.current = storedSprintId
         handleStartSprint(storedSprintId)
       }
-    } else if (currentSession && currentSprint && !currentChunk) {
-      // Sprint persisted in localStorage but chunk was lost — re-fetch it
+      return
+    }
+    // Always re-sync sprint content once per sprint on entry, so stale
+    // persisted chunks never survive across code/data fixes.
+    if (syncedSprintRef.current !== currentSprint.id) {
+      syncedSprintRef.current = currentSprint.id
       handleStartSprint(currentSprint.id)
     }
-  }, [currentSession?.id, currentSprint?.id, currentChunk?.index])
+  }, [currentSession?.id, currentSprint?.id])
 
   useEffect(() => {
     if (!currentSprint) return
     const secs = currentSprint.duration_minutes * 60
     setTimeLeft(secs)
     setShowNextChunk(false)
+    const endAt = Date.now() + secs * 1000
 
     if (timerRef.current) clearInterval(timerRef.current)
     timerRef.current = setInterval(() => {
-      setTimeLeft((t) => (t > 0 ? t - 1 : 0))
+      const remaining = Math.max(0, Math.ceil((endAt - Date.now()) / 1000))
+      setTimeLeft(remaining)
     }, 1000)
 
     if (nextChunkTimerRef.current) clearTimeout(nextChunkTimerRef.current)
@@ -1438,10 +1477,11 @@ export default function Session() {
 
   async function handleStartSprint(sprintId: string) {
     if (!currentSession) return
+    syncedSprintRef.current = sprintId
     pendingSprintIdRef.current = sprintId
     setSprintStartFailed(false)
     try {
-      const result = await startSprint(currentSession.id, sprintId)
+      const result = await startSprint(currentSession.id, sprintId, studentId)
       const sprint: Sprint = {
         id: result.sprint_id,
         session_id: currentSession.id,
@@ -1480,6 +1520,7 @@ export default function Session() {
     try {
       const quiz = await generateQuiz(
         currentSprint.id,
+        studentId,
         currentSession.id,
         currentChunk.text
       )
@@ -1553,7 +1594,7 @@ export default function Session() {
   async function handleCloseSession() {
     if (!currentSession) return
     try {
-      const result = await closeSession(currentSession.id)
+      const result = await closeSession(currentSession.id, studentId)
       setCloseResult(result)
       clearSession()
       setView('complete')
@@ -1578,6 +1619,7 @@ export default function Session() {
     try {
       const result = await askTutor(
         currentSession.id,
+        studentId,
         question,
         currentChunk.text,
         tutorHistory
@@ -1644,7 +1686,7 @@ export default function Session() {
     if (!currentChunk || !currentSession || isReexplaining) return
     setIsReexplaining(true)
     try {
-      const result = await reexplainChunk(currentSession.id, currentChunk.text)
+      const result = await reexplainChunk(currentSession.id, studentId, currentChunk.text)
       setReexplainedText(result.explanation)
     } catch {
       setError('Could not generate re-explanation. Try asking the tutor instead.')
@@ -2167,6 +2209,7 @@ export default function Session() {
         {showCheatsheet && currentSession && currentChunk && currentSprint?.material_id && (
           <CheatsheetModal
             materialId={currentSprint.material_id}
+            studentId={studentId}
             materialTitle={currentChunk.material_title ?? currentSession.goal}
             onClose={() => setShowCheatsheet(false)}
           />
@@ -2285,6 +2328,7 @@ export default function Session() {
               quiz={currentQuizData}
               onComplete={handleQuizComplete}
               onClose={() => { setShowQuiz(false); setCurrentQuizData(null) }}
+              studentId={studentId}
               sessionId={currentSession?.id ?? ''}
               sprintId={currentSprint?.id ?? ''}
               chunkText={currentChunk?.text ?? ''}
